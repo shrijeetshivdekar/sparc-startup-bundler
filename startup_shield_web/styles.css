@@ -1373,8 +1373,8 @@ button, input, select, textarea { font: inherit; }
 }
 
 .bundle-cover-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
@@ -1382,25 +1382,33 @@ button, input, select, textarea { font: inherit; }
   background: rgba(255,255,255,.07);
   border: 1px solid rgba(255,255,255,.1);
   border-radius: var(--r-sm);
-  padding: 10px 14px;
+  padding: 12px 14px;
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 10px;
 }
 
 .bundle-cover-dot {
-  width: 6px; height: 6px;
+  width: 7px; height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
+  margin-top: 4px;
 }
 .bundle-cover-dot.mandatory { background: #f87171; }
 .bundle-cover-dot.optional  { background: rgba(255,255,255,.3); }
 
 .bundle-cover-name {
   font-size: 12px;
-  font-weight: 600;
-  color: rgba(255,255,255,.8);
+  font-weight: 700;
+  color: rgba(255,255,255,.9);
   line-height: 1.3;
+}
+
+.bundle-cover-blurb {
+  font-size: 11px;
+  color: rgba(255,255,255,.45);
+  line-height: 1.5;
+  margin-top: 3px;
 }
 
 /* ── Products list (secondary) ── */

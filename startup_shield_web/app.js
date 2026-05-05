@@ -55,6 +55,26 @@ const state = {
 const $ = (id) => document.getElementById(id);
 const esc = (v) => String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
 const labelize = (k) => k.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase());
+
+const PRODUCT_BLURBS = {
+  "CYBER":                            "Covers data breach response, ransomware recovery, and regulatory penalties — directly required by CERT-In Directions 2022 and the DPDP Act.",
+  "D_AND_O":                          "Protects founders and directors personally if investors, regulators, or employees file suit over decisions made on the company's behalf.",
+  "PI_TECH_EO":                       "Pays legal defence and client claims if your software, API, or professional services cause a customer a financial loss or system failure.",
+  "CRIME_FIDELITY":                   "Reimburses losses from employee fraud, theft, or forgery — critical once you have a finance team, vendor access, or payment flows.",
+  "GROUP_HEALTH":                     "Medical cover for your entire team — a key hiring benefit and an IRDAI-regulated expectation once your headcount crosses 20.",
+  "GROUP_PA":                         "Accidental death and disability cover for your workforce, and mandatory for aggregator platforms under the Code on Social Security 2020.",
+  "EMPLOYERS_COMP":                   "Statutory payout if an employee is injured or dies at work — required under the Employees' Compensation Act 1923.",
+  "PRODUCT_LIABILITY":                "Covers legal defence and settlements if your physical product causes injury or property damage to a customer or third party.",
+  "PUBLIC_LIABILITY":                 "Covers third-party bodily injury or property damage claims arising from your premises, events, or day-to-day operations.",
+  "BHARAT_SOOKSHMA":                  "Government-backed property bundle protecting your office, equipment, and stock against fire, flood, and theft — up to ₹5 Cr sum insured.",
+  "MARINE_CARGO":                     "Covers goods in transit against loss or damage while your products move between warehouses, ports, or last-mile customers.",
+  "TRADE_CREDIT":                     "Pays you when a B2B buyer defaults on an invoice — essential for startups extending credit terms to distributors or enterprise clients.",
+  "ENGINEERING_CAR_EAR_CPM_MBD_EEI": "Covers physical damage to machinery, equipment under erection, and electronics — essential for hardware, robotics, and manufacturing startups.",
+  "SURETY":                           "A performance bond required for government contracts, guaranteeing project completion and protecting against contractor default.",
+  "PRAKRITIK_PARAMETRIC":             "Pays out automatically when a climate trigger — flood index, wind speed — is breached. No claims investigation; instant liquidity for climate-exposed ops.",
+  "Drone_RPAS":                       "DGCA-mandated insurance for drone operations, covering hull damage and third-party liability arising from aerial activities under Drone Rules 2021.",
+  "CGL_I_ELITE":                      "Comprehensive general liability for bodily injury, property damage, and personal injury claims from any third party — the corporate liability cornerstone.",
+};
 const formatVal = (v) => {
   if (Array.isArray(v)) return v.length ? v.join(", ") : "None";
   if (v === null || v === undefined || v === "") return "None";
@@ -1045,11 +1065,14 @@ function renderBundleHero(bundle, recs) {
       <div class="bundle-covers-label">Covers included — ${mandatory.length} mandatory · ${optional.length} optional</div>
       <div class="bundle-cover-grid">
         ${coverItems.slice(0, 12).map(({ key, type }) => {
-          const isRec = recKeys.has(key);
+          const blurb = PRODUCT_BLURBS[key] || "";
           return `
             <div class="bundle-cover-item">
               <div class="bundle-cover-dot ${type}"></div>
-              <div class="bundle-cover-name">${esc(labelize(key))}</div>
+              <div>
+                <div class="bundle-cover-name">${esc(labelize(key))}</div>
+                ${blurb ? `<div class="bundle-cover-blurb">${esc(blurb)}</div>` : ""}
+              </div>
             </div>`;
         }).join("")}
       </div>
