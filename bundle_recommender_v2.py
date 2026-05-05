@@ -353,10 +353,14 @@ def rank(profile: Dict[str, Any], cfg: Optional[Config] = None) -> List[Recommen
         if violates_compliance(bm, profile, cfg):
             continue
         cov = coverage_score(profile, bm, cfg)
+        weights = cfg.risk_weights.as_dict()
+        covered = bm.covered_risks or tuple(weights)
+        max_cov = sum(weights.get(r, 0.0) for r in covered)
+        cov_norm = (cov / max_cov) if max_cov > 0 else cov
         prem = premium_potential(bm, profile, mults, PRODUCTS)
         rev = revenue_score(bm)
         rm = bm.risk_mult
-        final = (0.45 * cov + 0.30 * (rev / 100.0) + 0.25 * bm.adoption) * (2.0 - rm)
+        final = (0.50 * cov_norm + 0.30 * (rev / 100.0) + 0.20 * bm.adoption) * rm
         results.append(Recommendation(
             bundle=bm.name,
             final=round(final, 3),
