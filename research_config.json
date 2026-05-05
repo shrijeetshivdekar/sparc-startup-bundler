@@ -119,14 +119,14 @@
       "adoption": 0.05,
       "margin": 0.18,
       "trajectory": "up",
-      "risk_mult": 0.9,
+      "risk_mult": 1.0,
       "eligible_sectors": ["any"],
       "eligible_stages": ["seed", "series_a"],
       "asset_band": ["warehouse", "asset_light"],
       "components": ["BHARAT_SOOKSHMA", "PUBLIC_LIABILITY", "EMPLOYERS_COMP"],
       "si_cap_inr": 50000000,
       "regulatory_anchors": ["Bharat Sookshma Udyam Suraksha wording"],
-      "covered_risks": ["property"]
+      "covered_risks": ["property", "liability", "gig_labour"]
     },
     "Deeptech_Innovation_Bundle": {
       "name": "Deeptech Innovation Bundle",
@@ -141,7 +141,7 @@
       "asset_band": ["lab_equipment", "fab_or_plant"],
       "components": ["ENGINEERING_CAR_EAR_CPM_MBD_EEI", "PI_TECH_EO", "D_AND_O", "PRODUCT_LIABILITY", "Drone_RPAS"],
       "regulatory_anchors": ["Drone Rules 2021 Rule 44", "Engineering Insurance wording"],
-      "covered_risks": ["property", "ip_infringement", "key_person", "cyber_technical", "liability"]
+      "covered_risks": ["property", "ip_infringement", "key_person", "cyber_technical", "liability", "regulatory_compliance"]
     },
     "Employee_Welfare_Bundle": {
       "name": "Employee Welfare Bundle",
@@ -156,7 +156,7 @@
       "asset_band": ["any"],
       "components": ["GROUP_HEALTH", "GROUP_PA", "EMPLOYERS_COMP"],
       "regulatory_anchors": ["Employees' Compensation Act 1923", "IRDAI Health Insurance Regulations"],
-      "covered_risks": ["key_person", "gig_labour", "liability"]
+      "covered_risks": ["key_person", "gig_labour", "liability", "regulatory_compliance"]
     },
     "Marine_Trade_Credit_Bundle": {
       "name": "Marine Trade Credit Bundle",
@@ -179,14 +179,14 @@
       "base_premium": 900000,
       "adoption": 0.09,
       "margin": 0.14,
-      "trajectory": "flat",
+      "trajectory": "up",
       "risk_mult": 1.25,
       "eligible_sectors": ["deeptech", "climatetech", "manufacturing", "d2c"],
       "eligible_stages": ["series_a", "series_b", "growth"],
       "asset_band": ["lab_equipment", "fab_or_plant"],
       "components": ["ENGINEERING_CAR_EAR_CPM_MBD_EEI", "SURETY", "MARINE_CARGO"],
       "regulatory_anchors": ["Engineering Insurance wording", "IRDAI Surety Insurance Guidelines"],
-      "covered_risks": ["property", "liability", "esg_climate"]
+      "covered_risks": ["property", "liability", "esg_climate", "ip_infringement"]
     },
     "Climate_Parametric_Bundle": {
       "name": "Climate Parametric Bundle",
@@ -201,7 +201,7 @@
       "asset_band": ["warehouse", "fab_or_plant", "asset_light"],
       "components": ["PRAKRITIK_PARAMETRIC", "BHARAT_SOOKSHMA", "PUBLIC_LIABILITY"],
       "regulatory_anchors": ["Parametric climate product filings"],
-      "covered_risks": ["esg_climate", "property", "geopolitical"]
+      "covered_risks": ["esg_climate", "property", "geopolitical", "regulatory_compliance"]
     }
   },
   "regulatory_triggers": [
