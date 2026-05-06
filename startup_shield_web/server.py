@@ -32,6 +32,7 @@ from bundle_scoring_utils import load_config  # noqa: E402
 from custom_product_triggers import check_custom_triggers  # noqa: E402
 from global_products import get_top5_global  # noqa: E402
 from premium_estimator import PREMIUM_FOOTNOTE, estimate_premium, get_size_bucket  # noqa: E402
+from pricing_engine import price_output_stage  # noqa: E402
 from risk_appetite import get_appetite, get_bad_reason  # noqa: E402
 from weightage_rationale import MULTIPLIER_RATIONALE, get_score_rationale  # noqa: E402
 
@@ -881,6 +882,7 @@ def _legacy_score(raw):
     mapping = product_mapping(recommendations, scores)
     rounded_scores = {key: round(value, 1) for key, value in scores.items()}
     safe_bundle = json_safe(bundle)
+    pricing_quote = price_output_stage(profile, rounded_scores, preferred_recommendations, safe_bundle)
     save_recommendation(profile, rounded_scores, recommendations, safe_bundle, global_ranked, appetite_flags, premium, size_bucket)
     outreach, outreach_source, outreach_error = outreach_prompts(profile, rounded_scores, preferred_recommendations, safe_bundle, size_bucket)
     return {
@@ -897,6 +899,7 @@ def _legacy_score(raw):
         "product_mapping": mapping,
         "size_bucket": size_bucket,
         "premium_summary": premium,
+        "pricing_engine_quote": json_safe(pricing_quote),
         "premium_footnote": PREMIUM_FOOTNOTE,
         "global_products": json_safe(global_ranked),
         "score_rationales": score_rationales(profile["sector"], rounded_scores),
@@ -993,6 +996,23 @@ def _v2_score(raw):
     bundle_payloads = [_v2_bundle_to_payload(rec, rank=i + 1) for i, rec in enumerate(recs)]
     payload["bundle_match"] = json_safe(bundle_payloads[0])
     payload["bundle_alternatives"] = json_safe(bundle_payloads[1:])
+    payload["pricing_engine_quote"] = json_safe(price_output_stage(
+        payload["profile"],
+        payload["scores"],
+        payload.get("recommendations", []),
+        payload["bundle_match"],
+    ))
+    # Bundle-only quote: prices just the bundle's mandatory covers — no standalone recs.
+    payload["bundle_only_pricing_quote"] = json_safe(price_output_stage(
+        payload["profile"],
+        payload["scores"],
+        [],
+        {
+            "name": bundle_payloads[0].get("name"),
+            "mandatory_covers": bundle_payloads[0].get("mandatory_covers", []),
+            "optional_covers": [],
+        },
+    ))
     payload["revenue_breakdown"] = json_safe(_revenue_breakdown_v2(recs))
     payload["risk_multiplier_breakdown"] = json_safe(risk_multiplier_breakdown_v2(v2_profile, cfg))
     payload["regulatory_triggers_fired"] = json_safe(recs[0].regulatory_triggers_fired)

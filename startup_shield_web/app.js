@@ -730,11 +730,13 @@ function renderResults(result) {
         ${renderKPI("Overall risk", `${result.overall}/100`)}
         ${renderKPI("Top risk", (result.top_risks||[])[0]?.name?.replace(" Risk","") || "—")}
         ${renderKPI("Critical covers", (result.recommendations||[]).filter(r=>r.priority==="Critical").length + " products")}
+        ${renderKPI("Bundle quote", result.bundle_only_pricing_quote?.gross_premium_lakh ? `INR ${result.bundle_only_pricing_quote.gross_premium_lakh}L` : "Input needed")}
         ${renderKPI("Premium range", result.premium_summary ? `₹${result.premium_summary.min_lakh}–${result.premium_summary.max_lakh}L` : "—")}
         ${renderKPI("Risk clusters", Object.keys(result.clusters||{}).length + " analysed")}
       </div>
 
       <!-- Premium summary -->
+      ${renderDualPricingPanel(result)}
       ${result.premium_summary ? `
       <div class="premium-card">
         <div class="premium-card-label">Total premium potential</div>
@@ -910,6 +912,168 @@ function renderKPI(label, value) {
       <div class="kpi-label">${esc(label)}</div>
       <div class="kpi-value">${esc(String(value))}</div>
     </div>`;
+}
+
+function isQuoted(q) {
+  return q?.covers_priced?.length > 0;
+}
+
+function renderPricePanel(quote, tagLabel, tagClass, subtitle) {
+  if (!quote || !isQuoted(quote)) return "";
+  const covers = quote.covers_priced || [];
+  const flags  = quote.underwriter_referral_flags || [];
+  return `
+    <div class="pricing-card">
+      <span class="pricing-panel-tag ${tagClass}">${esc(tagLabel)}</span>
+      <div class="pricing-head">
+        <div>
+          <div class="pricing-title">INR ${esc(quote.gross_premium_lakh)} lakhs</div>
+          <div class="premium-card-note">${esc(subtitle)} &nbsp;·&nbsp; incl. 18% GST</div>
+        </div>
+        <div class="pricing-totals">
+          <div class="kv-row"><span class="kv-key">Net premium</span><span class="kv-val">INR ${esc(quote.net_premium_lakh)}L</span></div>
+          <div class="kv-row"><span class="kv-key">GST (18%)</span><span class="kv-val">INR ${esc(quote.gst_lakh)}L</span></div>
+          <div class="kv-row"><span class="kv-key">${quote.cover_count} cover${quote.cover_count !== 1 ? "s" : ""}</span><span class="kv-val">INR ${esc(quote.total_sum_insured_cr)}Cr SI</span></div>
+          ${quote.bundle_discount_lakh > 0 ? `<div class="kv-row"><span class="kv-key">Bundle discount</span><span class="kv-val" style="color:var(--green,#2e7d32)">−INR ${esc(quote.bundle_discount_lakh)}L</span></div>` : ""}
+        </div>
+      </div>
+      <div class="pricing-cover-grid">
+        ${covers.map(c => `
+          <div class="pricing-cover">
+            <div class="pricing-cover-name">${esc(c.cover_name || labelize(c.cover_key))}</div>
+            <div class="pricing-cover-premium">INR ${esc(c.premium_lakh)}L</div>
+            <div class="pricing-cover-basis">${esc(c.exposure_label || "")} | risk ${esc(c.average_risk_score ?? "n/a")}/100</div>
+          </div>`).join("")}
+      </div>
+      ${flags.length ? `
+        <div class="pricing-notes" style="grid-template-columns:1fr;">
+          <div><div class="card-label">Underwriter checks</div>${flags.map(f => `<div class="callout-item compact"><span>${esc(f)}</span></div>`).join("")}</div>
+        </div>` : ""}
+    </div>`;
+}
+
+function renderDualPricingPanel(result) {
+  const bundleQ = result.bundle_only_pricing_quote;
+  const fullQ   = result.pricing_engine_quote;
+  const bundleName = result.bundle_match?.name || "Recommended bundle";
+  const fullCount  = fullQ?.covers_to_price?.length || fullQ?.cover_count || "";
+
+  if (!isQuoted(bundleQ) && !isQuoted(fullQ)) {
+    // Neither is quoted yet — show one shared input form sourced from the full quote
+    // (its required_inputs is a superset of the bundle-only quote's)
+    return renderQuoteInputPanel(fullQ || bundleQ);
+  }
+
+  return `
+    <div class="pricing-split">
+      ${renderPricePanel(bundleQ, "Bundle price", "bundle", bundleName)}
+      ${renderPricePanel(fullQ,   "Full recommended cover", "full", `${fullCount ? fullCount + " covers — " : ""}bundle + critical products`)}
+    </div>`;
+}
+
+function renderPricingQuote(quote) {
+  if (!quote) return "";
+  if (quote.quote_type === "input_required" || !quote?.covers_priced?.length) {
+    return renderQuoteInputPanel(quote);
+  }
+  const covers = quote.covers_priced || [];
+  const flags = quote.underwriter_referral_flags || [];
+  const missing = quote.missing_inputs || [];
+  const assumptions = quote.assumptions || [];
+  return `
+    <div class="pricing-card">
+      <div class="pricing-head">
+        <div>
+          <div class="premium-card-label">Pricing engine quote</div>
+          <div class="pricing-title">INR ${esc(quote.gross_premium_lakh)} lakhs incl. GST</div>
+          <div class="premium-card-note">${esc(quote.method || "Base rate x sum insured x risk loadings.")}</div>
+        </div>
+        <div class="pricing-totals">
+          <div class="kv-row"><span class="kv-key">Net premium</span><span class="kv-val">INR ${esc(quote.net_premium_lakh)}L</span></div>
+          <div class="kv-row"><span class="kv-key">GST</span><span class="kv-val">INR ${esc(quote.gst_lakh)}L</span></div>
+          <div class="kv-row"><span class="kv-key">Total SI</span><span class="kv-val">INR ${esc(quote.total_sum_insured_cr)}Cr</span></div>
+        </div>
+      </div>
+      <div class="pricing-cover-grid">
+        ${covers.slice(0, 8).map(c => `
+          <div class="pricing-cover">
+            <div class="pricing-cover-name">${esc(c.cover_name || labelize(c.cover_key))}</div>
+            <div class="pricing-cover-premium">INR ${esc(c.premium_lakh)}L</div>
+            <div class="pricing-cover-basis">${esc(c.exposure_label || "")} | risk ${esc(c.average_risk_score ?? "n/a")}/100</div>
+          </div>`).join("")}
+      </div>
+      ${flags.length || missing.length || assumptions.length ? `
+        <div class="pricing-notes">
+          ${flags.length ? `<div><div class="card-label">Underwriter checks</div>${flags.map(f => `<div class="callout-item compact"><span>${esc(f)}</span></div>`).join("")}</div>` : ""}
+          ${missing.length ? `<div><div class="card-label">Inputs to confirm</div>${missing.map(m => `<div class="callout-item compact"><span>${esc(m)}</span></div>`).join("")}</div>` : ""}
+          ${assumptions.length ? `<div><div class="card-label">Assumptions</div>${assumptions.map(a => `<div class="callout-item compact"><span>${esc(a)}</span></div>`).join("")}</div>` : ""}
+        </div>` : ""}
+    </div>`;
+}
+
+function quoteFieldValue(row) {
+  for (const key of (row.aliases || [row.key])) {
+    const val = state.profile[key];
+    if (val !== undefined && val !== null && val !== "") return val;
+  }
+  return "";
+}
+
+function renderQuoteInputPanel(quote) {
+  const fields = quote.required_inputs || [];
+  const missing = quote.missing_required_inputs || [];
+  const covers = quote.covers_to_price || [];
+  return `
+    <div class="pricing-card">
+      <div class="pricing-head">
+        <div>
+          <div class="premium-card-label">Estimated quote</div>
+          <div class="pricing-title">Want to see an estimated quote?</div>
+          <div class="premium-card-note">No premium is calculated until you provide the underwriting inputs below. The estimate will use only these submitted values plus the risk assessment already shown.</div>
+        </div>
+        <div class="pricing-totals">
+          <div class="kv-row"><span class="kv-key">Status</span><span class="kv-val">${quote.status === "awaiting_inputs" ? "Waiting for inputs" : "Not requested"}</span></div>
+          <div class="kv-row"><span class="kv-key">Covers</span><span class="kv-val">${covers.length}</span></div>
+        </div>
+      </div>
+      ${covers.length ? `
+        <div class="cover-pills" style="margin-bottom:14px;">
+          ${covers.slice(0, 10).map(c => `<span class="cover-pill">${esc(c.cover_name || labelize(c.cover_key))}</span>`).join("")}
+        </div>` : ""}
+      <div class="quote-input-grid">
+        ${fields.map(row => `
+          <label class="quote-input-field">
+            <span>${esc(row.label)} ${row.unit ? `<em>${esc(row.unit)}</em>` : ""}</span>
+            <input class="f-input" type="number" min="0" step="${row.unit === "count" ? "1" : "0.01"}"
+              value="${esc(String(quoteFieldValue(row)))}"
+              oninput="setVal('${esc(row.key)}', Number(this.value))" />
+            ${row.help ? `<small>${esc(row.help)}</small>` : ""}
+          </label>`).join("")}
+      </div>
+      ${missing.length ? `<div class="notice" style="margin-top:12px;">Please fill ${missing.length} required input${missing.length > 1 ? "s" : ""} before estimating.</div>` : ""}
+      <div style="display:flex;gap:10px;align-items:center;margin-top:16px;flex-wrap:wrap;">
+        <button class="btn btn-primary" type="button" onclick="generatePricingEstimate()">Generate estimated quote</button>
+        <span id="pricing-estimate-status" style="font-size:12px;color:var(--ink-muted);"></span>
+      </div>
+    </div>`;
+}
+
+async function generatePricingEstimate() {
+  const status = $("pricing-estimate-status");
+  if (status) status.textContent = "Calculating from submitted inputs...";
+  state.profile.quote_requested = true;
+  try {
+    const res = await fetch("/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(state.profile),
+    });
+    const result = await res.json();
+    if (!res.ok || result.error) throw new Error(result.error || "Failed");
+    renderResults(result);
+  } catch (err) {
+    if (status) status.textContent = `Error: ${err.message}`;
+  }
 }
 
 function overallLabel(score) {
@@ -1503,6 +1667,8 @@ window.downloadReport = function(result) {
     `Stage: ${result.profile.funding_stage}`,
     `Team size: ${result.profile.team_size}`,
     `Overall risk: ${result.overall}/100`,
+    result.bundle_only_pricing_quote?.gross_premium_lakh ? `Bundle price: INR ${result.bundle_only_pricing_quote.gross_premium_lakh} lakhs incl. GST` : "Bundle price: not requested",
+    result.pricing_engine_quote?.gross_premium_lakh ? `Full cover price: INR ${result.pricing_engine_quote.gross_premium_lakh} lakhs incl. GST` : "Full cover price: not requested",
     "",
     "TOP RISKS:",
     ...(result.top_risks||[]).map(r => `  · ${r.name}: ${r.score}/100`),
