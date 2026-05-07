@@ -47,8 +47,10 @@ const FUNDING_ICONS = {
 /* ─── STATE ──────────────────────────────────────────────────── */
 const state = {
   meta: null,
+  view: "role",
   section: 0,   // 0..3
   profile: {},
+  customerProfile: {},
 };
 
 /* ─── UTILS ──────────────────────────────────────────────────── */
@@ -99,7 +101,8 @@ async function init() {
     state.meta = stub;
     state.profile = structuredClone(state.meta.defaults);
   }
-  renderForm();
+  resetCustomerProfile();
+  renderRoleSelection();
 }
 
 function buildStubMeta() {
@@ -195,7 +198,362 @@ function renderApp() {
 }
 
 /* ─── FORM RENDER ────────────────────────────────────────────── */
+function resetCustomerProfile() {
+  state.customerProfile = {
+    business_name: "",
+    persona: "SaaS founder",
+    industry: state.meta?.defaults?.sector || "SaaS / Enterprise Software",
+    revenue_range: "INR 1-5 Cr",
+    team_range: "11-50",
+    funding_status: "Seed",
+    main_concern: "Customer contracts",
+    handles: ["customer_data", "contracts"],
+  };
+}
+
+function renderRoleSelection() {
+  state.view = "role";
+  $("main-content").innerHTML = `
+    <main class="role-shell">
+      <section class="role-panel">
+        <div class="role-copy">
+          <div class="intake-eyebrow">Choose experience</div>
+          <h1>Start with the input view that fits your role</h1>
+          <p>Select the customer route for a short, persona-led recommendation. Select the underwriter route for the full SPARC intake and risk report.</p>
+        </div>
+        <div class="role-options">
+          <button class="role-card role-card-primary" type="button" id="customer-role-btn">
+            <span class="role-card-kicker">Customer End Input</span>
+            <strong>Quick recommendation</strong>
+            <span>Short profile questions, simple language, and an RM-ready recommendation screen.</span>
+          </button>
+          <button class="role-card" type="button" id="underwriter-role-btn">
+            <span class="role-card-kicker">Underwriter End Input</span>
+            <strong>Full underwriting analysis</strong>
+            <span>Use the existing detailed intake, scoring model, pricing views, and report output.</span>
+          </button>
+        </div>
+      </section>
+    </main>`;
+
+  $("customer-role-btn").onclick = () => {
+    if (!state.customerProfile?.persona) resetCustomerProfile();
+    renderCustomerInput();
+  };
+  $("underwriter-role-btn").onclick = () => renderForm();
+}
+
+function renderCustomerInput() {
+  state.view = "customer";
+  const meta = state.meta;
+  const p = state.customerProfile;
+  const sectors = (meta.sectors || []).map(s => s.name);
+  const handleOptions = [
+    ["customer_data", "Customer data"],
+    ["payments", "Online payments"],
+    ["contracts", "B2B contracts"],
+    ["employees", "Employees"],
+    ["physical_ops", "Office, stock, or equipment"],
+  ];
+
+  $("main-content").innerHTML = `
+    <main class="customer-shell">
+      <section class="customer-form-panel">
+        <button class="link-button" type="button" id="customer-back-role">Back to role selection</button>
+        <div class="customer-head">
+          <div class="intake-eyebrow">Customer input</div>
+          <h1>Get a startup insurance recommendation in under two minutes</h1>
+          <p>Answer a few business-friendly questions. We will translate them into the SPARC risk model and keep the output concise.</p>
+        </div>
+
+        <div class="customer-grid">
+          <div class="field-group">
+            <label>Business name</label>
+            <input class="f-input" type="text" value="${esc(p.business_name)}" placeholder="e.g. BrightPay" data-customer-key="business_name" />
+          </div>
+          <div class="field-group">
+            <label>Which sounds closest to you?</label>
+            <select class="f-select" data-customer-key="persona">
+              ${["SaaS founder","Fintech operator","D2C brand","Healthtech builder","Marketplace platform","Hardware or IoT startup","AI product company"].map(v => `<option ${p.persona===v?"selected":""}>${esc(v)}</option>`).join("")}
+            </select>
+          </div>
+          <div class="field-group">
+            <label>Industry</label>
+            <select class="f-select" data-customer-key="industry">
+              ${sectors.map(v => `<option ${p.industry===v?"selected":""}>${esc(v)}</option>`).join("")}
+            </select>
+          </div>
+          <div class="field-group">
+            <label>Annual revenue range</label>
+            <select class="f-select" data-customer-key="revenue_range">
+              ${["Pre-revenue","Below INR 1 Cr","INR 1-5 Cr","INR 5-25 Cr","INR 25 Cr+"].map(v => `<option ${p.revenue_range===v?"selected":""}>${esc(v)}</option>`).join("")}
+            </select>
+          </div>
+          <div class="field-group">
+            <label>Team size</label>
+            <select class="f-select" data-customer-key="team_range">
+              ${["1-10","11-50","51-200","200+"].map(v => `<option ${p.team_range===v?"selected":""}>${esc(v)}</option>`).join("")}
+            </select>
+          </div>
+          <div class="field-group">
+            <label>Funding status</label>
+            <select class="f-select" data-customer-key="funding_status">
+              ${(meta.fundingStages || ["Pre-seed","Seed","Series A","Series B+"]).map(v => `<option ${p.funding_status===v?"selected":""}>${esc(v)}</option>`).join("")}
+            </select>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label>Main concern right now</label>
+          <div class="customer-choice-row" id="customer-concerns">
+            ${["Customer contracts","Data breach","Investor or board risk","Employee benefits","Product or service claims","Property or equipment loss"].map(v => `
+              <button class="customer-chip ${p.main_concern===v?"active":""}" type="button" data-concern="${esc(v)}">${esc(v)}</button>`).join("")}
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label>What applies to your business?</label>
+          <div class="customer-check-grid">
+            ${handleOptions.map(([key, label]) => `
+              <label class="customer-check">
+                <input type="checkbox" value="${key}" ${(p.handles || []).includes(key) ? "checked" : ""} />
+                <span>${esc(label)}</span>
+              </label>`).join("")}
+          </div>
+        </div>
+
+        <div class="customer-actions">
+          <button class="btn btn-ghost" type="button" id="customer-reset-btn">Reset</button>
+          <button class="btn btn-primary btn-lg" type="button" id="customer-submit-btn">Show my recommendation</button>
+        </div>
+      </section>
+
+      <aside class="customer-side">
+        <div class="customer-side-card">
+          <div class="sidebar-card-label">What you will see</div>
+          <div class="info-list">
+            <div class="info-row"><div class="info-dot"></div><span>Best-fit bundle for your stage</span></div>
+            <div class="info-row"><div class="info-dot"></div><span>Top 3 products to discuss first</span></div>
+            <div class="info-row"><div class="info-dot"></div><span>Baseline cover to start with</span></div>
+            <div class="info-row"><div class="info-dot"></div><span>Plain-language RM nudge</span></div>
+          </div>
+        </div>
+      </aside>
+    </main>`;
+
+  bindCustomerInput();
+}
+
+function bindCustomerInput() {
+  $("customer-back-role").onclick = () => renderRoleSelection();
+  $("customer-reset-btn").onclick = () => {
+    resetCustomerProfile();
+    renderCustomerInput();
+  };
+  document.querySelectorAll("[data-customer-key]").forEach(el => {
+    const update = () => { state.customerProfile[el.dataset.customerKey] = el.value; };
+    el.addEventListener("input", update);
+    el.addEventListener("change", update);
+  });
+  document.querySelectorAll("[data-concern]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.customerProfile.main_concern = btn.dataset.concern;
+      document.querySelectorAll("[data-concern]").forEach(x => x.classList.toggle("active", x === btn));
+    });
+  });
+  document.querySelectorAll(".customer-check input").forEach(el => {
+    el.addEventListener("change", () => {
+      state.customerProfile.handles = [...document.querySelectorAll(".customer-check input:checked")].map(x => x.value);
+    });
+  });
+  $("customer-submit-btn").onclick = () => runCustomerAnalysis();
+}
+
+function teamRangeToNumber(range) {
+  return { "1-10": 8, "11-50": 25, "51-200": 90, "200+": 250 }[range] || 20;
+}
+
+function mapCustomerToUnderwritingProfile(customer) {
+  const handles = new Set(customer.handles || []);
+  const profile = structuredClone(state.meta.defaults);
+  profile.startup_name = customer.business_name?.trim() || "Your startup";
+  profile.sector = customer.industry || profile.sector;
+  profile.funding_stage = customer.funding_status || profile.funding_stage;
+  profile.team_size = teamRangeToNumber(customer.team_range);
+  profile.product_description = `${customer.persona}. Main concern: ${customer.main_concern}. Revenue range: ${customer.revenue_range}.`;
+  profile.has_investors = ["Seed", "Series A", "Series B+"].includes(profile.funding_stage) ? "Yes" : "No";
+  profile.customer_type = handles.has("contracts") ? ["B2B Enterprise"] : ["B2C Consumers"];
+  profile.operations = handles.has("physical_ops") ? "Hybrid" : "Digital-only";
+  profile.data_sensitivity = handles.has("payments") || handles.has("customer_data") ? "High" : "Medium";
+  profile.data_handled = [];
+  profile.regulatory = [];
+  profile.physical_assets = [];
+
+  if (handles.has("customer_data")) {
+    profile.data_handled.push("Customer behavioural / usage data");
+    profile.regulatory.push("DPDP Act obligations");
+  }
+  if (handles.has("payments")) {
+    profile.data_handled.push("Payments / financial transactions");
+    profile.regulatory.push("IT Act / CERT-In obligations");
+  }
+  if (handles.has("employees")) {
+    profile.data_handled.push("Employee / HR data (payroll, biometrics)");
+  }
+  if (handles.has("physical_ops")) {
+    profile.physical_assets.push("Office / coworking space");
+  }
+  if (customer.main_concern === "Data breach" && !profile.regulatory.includes("IT Act / CERT-In obligations")) {
+    profile.regulatory.push("IT Act / CERT-In obligations");
+  }
+  if (customer.main_concern === "Employee benefits" && !handles.has("employees")) {
+    profile.data_handled.push("Employee / HR data (payroll, biometrics)");
+  }
+
+  profile.biggest_fear = customer.main_concern || "";
+  profile.b2b_pct = handles.has("contracts") ? 0.75 : 0.25;
+  return profile;
+}
+
+async function runCustomerAnalysis() {
+  renderCustomerLoading();
+  const mappedProfile = mapCustomerToUnderwritingProfile(state.customerProfile);
+  try {
+    const res = await fetch("/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(mappedProfile),
+    });
+    const result = await res.json();
+    if (!res.ok || result.error) throw new Error(result.error || "Analysis failed");
+    renderCustomerResults(result);
+  } catch (err) {
+    $("main-content").innerHTML = `
+      <div style="padding:100px 40px;max-width:640px;margin:0 auto;">
+        <div class="error-box">${esc(err.message)}</div>
+        <button class="btn btn-ghost" style="margin-top:16px;" onclick="renderCustomerInput()">Back to customer inputs</button>
+      </div>`;
+  }
+}
+
+function renderCustomerLoading() {
+  $("main-content").innerHTML = `
+    <div class="loading-screen customer-loading">
+      <div class="loading-ring"></div>
+      <div class="loading-text">Building your recommendation</div>
+      <div class="loading-sub">Translating your profile into a simple bundle and product shortlist.</div>
+    </div>`;
+}
+
+function getBaselineProduct(result) {
+  const recs = result.recommendations || [];
+  return recs.find(p => p.mandatory) || recs.find(p => p.priority === "Critical") || recs[0] || null;
+}
+
+function customerProductReason(product) {
+  if (!product) return "";
+  return product.nudge || PRODUCT_BLURBS[product.key] || "Relevant for the risks most likely to affect your business at this stage.";
+}
+
+function customerExplanation(result) {
+  const p = result.profile || {};
+  const topRisk = (result.top_risks || [])[0]?.name?.replace(" Risk", "").toLowerCase() || "business continuity";
+  const bundle = result.bundle_match?.name || "the recommended bundle";
+  return `For a ${p.funding_stage || "growing"} ${p.sector || "startup"} with about ${p.team_size || "your current"} people, ${bundle} is the clearest starting point. It prioritises ${topRisk} and keeps the first discussion focused on covers that protect contracts, data, people, and day-to-day operations.`;
+}
+
+function customerNudge(result) {
+  const p = result.profile || {};
+  if ((p.customer_type || []).includes("B2B Enterprise")) {
+    return "This is commonly selected by businesses at your stage before signing larger customer contracts.";
+  }
+  if ((p.data_handled || []).length) {
+    return "Founders with similar data exposure often review this cover early to avoid expensive surprises after a breach or customer complaint.";
+  }
+  return "Teams at this stage often start with baseline protection now, then expand the cover as revenue and operations scale.";
+}
+
+function renderCustomerResults(result) {
+  const p = result.profile || {};
+  const bundle = result.bundle_match || {};
+  const topProducts = (result.recommendations || []).slice(0, 3);
+  const baseline = getBaselineProduct(result);
+
+  $("main-content").innerHTML = `
+    <main class="customer-results">
+      <section class="customer-results-hero">
+        <button class="link-button light" type="button" onclick="renderCustomerInput()">Edit customer inputs</button>
+        <div class="customer-results-top">
+          <div>
+            <div class="customer-results-kicker">Your startup shield recommendation</div>
+            <h1>${esc(bundle.name || "Recommended startup protection")}</h1>
+            <p>${esc(customerExplanation(result))}</p>
+          </div>
+          <div class="customer-fit">
+            <strong>${bundle.fit_pct || Math.round(100 - Math.min(70, result.overall || 0) / 2)}%</strong>
+            <span>profile fit</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="customer-result-grid">
+        <article class="customer-result-card customer-bundle-card">
+          <div class="card-label">Recommended bundle</div>
+          <h2>${esc(bundle.name || "Bundle recommendation")}</h2>
+          <p>${esc(bundle.description || "A practical set of covers matched to your current business profile.")}</p>
+          ${result.bundle_only_pricing_quote?.gross_premium_lakh ? `<div class="customer-price">Indicative bundle premium: INR ${esc(result.bundle_only_pricing_quote.gross_premium_lakh)}L incl. GST</div>` : ""}
+        </article>
+
+        <article class="customer-result-card">
+          <div class="card-label">Baseline product</div>
+          ${baseline ? `
+            <h2>${esc(baseline.name || labelize(baseline.key))}</h2>
+            <p>${esc(customerProductReason(baseline))}</p>
+          ` : `<p>No baseline product was returned for this profile.</p>`}
+        </article>
+      </section>
+
+      <section class="customer-products-section">
+        <div class="result-section-head">
+          <div class="result-section-bar"></div>
+          <div class="result-section-title">Top 3 products to discuss first</div>
+        </div>
+        <div class="customer-product-grid">
+          ${topProducts.map((product, i) => `
+            <article class="customer-product-card">
+              <div class="customer-product-rank">#${i + 1}</div>
+              <h3>${esc(product.name || labelize(product.key))}</h3>
+              <p>${esc(customerProductReason(product))}</p>
+              <div class="customer-product-tags">
+                <span>${esc(product.priority || "Recommended")}</span>
+                ${product.mandatory ? "<span>Baseline</span>" : ""}
+              </div>
+            </article>`).join("") || `<div class="r-card">${emptyState("i", "No products returned", "Try changing the customer profile inputs.")}</div>`}
+        </div>
+      </section>
+
+      <section class="customer-rm-banner">
+        <div>
+          <div class="customer-rm-label">Next best action</div>
+          <h2>Talk with your RM</h2>
+          <p>${esc(customerNudge(result))}</p>
+        </div>
+        <button class="btn btn-primary btn-lg" type="button">Talk with RM</button>
+      </section>
+
+      <div class="customer-result-actions">
+        <button class="btn btn-ghost" type="button" onclick="renderRoleSelection()">Back to role selection</button>
+        <button class="btn btn-ghost" type="button" onclick="renderForm()">Open underwriter view</button>
+      </div>
+    </main>`;
+
+  state.profile = structuredClone(p);
+  window.__customerResult = result;
+}
+
 function renderForm() {
+  state.view = "underwriter";
+  state.section = 0;
   const mc = $("main-content");
   mc.innerHTML = `
     <div class="intake-shell">
