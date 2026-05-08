@@ -1398,6 +1398,13 @@ function renderQuoteInputPanel(quote) {
   const fields = quote.required_inputs || [];
   const missing = quote.missing_required_inputs || [];
   const covers = quote.covers_to_price || [];
+  // Pre-set boolean fields to false so the default "No" counts as provided
+  // without requiring the user to interact with the select first.
+  fields.filter(f => f.unit === "yes/no").forEach(f => {
+    if (state.profile[f.key] === undefined || state.profile[f.key] === null) {
+      state.profile[f.key] = false;
+    }
+  });
   return `
     <div class="pricing-card">
       <div class="pricing-head">
