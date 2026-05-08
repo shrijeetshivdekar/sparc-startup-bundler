@@ -38,6 +38,9 @@ def test_pricing_engine_prices_bundle_components_with_gst():
         "cyber_limit_cr": 7.5,
         "dno_limit_cr": 5.0,
         "pi_limit_cr": 5.0,
+        "annual_revenue_cr": 15.0,
+        "data_records_lakhs": 5.0,
+        "claims_last_3_years": False,
     }
     bundle = {
         "name": "Startup Shield Pack",
@@ -81,6 +84,9 @@ def test_pricing_engine_does_not_quote_without_user_request():
         "cyber_limit_cr",
         "dno_limit_cr",
         "pi_limit_cr",
+        "annual_revenue_cr",
+        "data_records_lakhs",
+        "claims_last_3_years",
     }
 
 
@@ -144,6 +150,9 @@ def test_analyze_response_quotes_after_user_supplies_inputs():
         "crime_limit_cr": 1.0,
         "receivables_on_credit_cr": 2.0,
         "public_liability_limit_cr": 2.0,
+        "annual_revenue_cr": 20.0,
+        "data_records_lakhs": 8.0,
+        "claims_last_3_years": False,
     })
 
     quote = payload["pricing_engine_quote"]

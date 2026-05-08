@@ -237,13 +237,32 @@ INPUT_FIELD_LABELS = {
     "drone_hull_si_cr": ("Drone hull SI", "INR Cr", "Drone hull/equipment value."),
     "employee_count": ("Employee count", "count", "Employees to be covered."),
     "team_size": ("Team size", "count", "Existing intake team size used for employee covers."),
+    "annual_revenue_cr": ("Annual revenue", "INR Cr", "Annual revenue / ARR — scales Cyber and PI/Tech E&O premium."),
+    "data_records_lakhs": ("Data records", "lakhs", "Customer/user records held in lakhs (1 lakh = 100,000). Drives Cyber exposure."),
+    "claims_last_3_years": ("Prior claims", "yes/no", "Any insurance claims filed in the last 3 years? Adds a loading if yes."),
 }
 
 
 REQUIRED_INPUTS_BY_COVER = {
-    "cyber_liability": (("cyber_limit_cr",),),
-    "dno_liability": (("dno_limit_cr",),),
-    "professional_indemnity": (("pi_limit_cr", "professional_indemnity_limit_cr"),),
+    "cyber_liability": (
+        ("cyber_limit_cr",),
+        ("annual_revenue_cr", "revenue_cr"),
+        ("data_records_lakhs",),
+        ("claims_last_3_years",),
+    ),
+    "dno_liability": (
+        ("dno_limit_cr",),
+        ("claims_last_3_years",),
+    ),
+    "professional_indemnity": (
+        ("pi_limit_cr", "professional_indemnity_limit_cr"),
+        ("annual_revenue_cr", "revenue_cr"),
+        ("claims_last_3_years",),
+    ),
+    "crime_fidelity": (
+        ("crime_limit_cr",),
+        ("claims_last_3_years",),
+    ),
     "comprehensive_general_liability": (("public_liability_limit_cr",),),
     "public_liability": (("public_liability_limit_cr",),),
     "product_liability": (("product_liability_limit_cr",),),
@@ -262,7 +281,6 @@ REQUIRED_INPUTS_BY_COVER = {
     "surety": (("project_value_cr", "capex_project_value_cr"),),
     "parametric": (("weather_exposed_si_cr",),),
     "money_insurance": (("cash_limit_cr",),),
-    "crime_fidelity": (("crime_limit_cr",),),
     "drone_insurance": (("drone_hull_si_cr",),),
 }
 
@@ -445,8 +463,7 @@ def _select_covers(
     for key in (bundle or {}).get("optional_covers", []):
         raw.append(key)
     for product in recommendations or []:
-        if product.get("priority") == "Critical" or product.get("mandatory"):
-            raw.append(product.get("key"))
+        raw.append(product.get("key"))
 
     # Normalise, deduplicate, and enforce the cap across the full combined list.
     normalized: List[str] = []
@@ -531,6 +548,45 @@ def _risk_loading(avg_risk: float) -> float:
     return round(0.75 + (max(0.0, min(avg_risk, 100.0)) / 100.0) * 0.85, 3)
 
 
+def _revenue_loading(cover: str, profile: Dict[str, Any]) -> float:
+    """Scale Cyber and PI premiums by annual revenue band.
+    Sub-5Cr startups get a slight discount; 50Cr+ attract up to +20%.
+    Only applies when annual_revenue_cr is explicitly provided."""
+    if cover not in ("cyber_liability", "professional_indemnity"):
+        return 1.0
+    revenue = _explicit_cr(profile, "annual_revenue_cr", "revenue_cr")
+    if revenue is None:
+        return 1.0
+    if revenue < 5:
+        return 0.92
+    if revenue < 20:
+        return 1.00
+    if revenue < 50:
+        return 1.08
+    if revenue < 100:
+        return 1.15
+    return 1.20
+
+
+def _records_loading(cover: str, profile: Dict[str, Any]) -> float:
+    """Scale Cyber premium by data records held (in lakhs).
+    10M+ records (100 lakhs) is the DPDP significant-data-fiduciary threshold."""
+    if cover != "cyber_liability":
+        return 1.0
+    records = _float(profile.get("data_records_lakhs"), 0)
+    if records <= 0:
+        return 1.0
+    if records < 1:
+        return 0.95
+    if records < 10:
+        return 1.00
+    if records < 50:
+        return 1.10
+    if records < 100:
+        return 1.20
+    return 1.30
+
+
 def _price_cover(
     cover_key: str,
     spec: CoverSpec,
@@ -547,6 +603,8 @@ def _price_cover(
         "climate": _climate_loading(cover_key, profile),
         "controls": _control_loading(cover_key, profile),
         "claims": _claims_loading(profile),
+        "revenue": _revenue_loading(cover_key, profile),
+        "records": _records_loading(cover_key, profile),
     }
     combined_loading = 1.0
     for value in loadings.values():
@@ -600,7 +658,13 @@ def _missing_inputs(profile: Dict[str, Any], covers: List[str]) -> List[str]:
 
 
 def _input_present(profile: Dict[str, Any], aliases: Iterable[str]) -> bool:
-    return any(_positive(profile.get(alias)) is not None for alias in aliases)
+    for alias in aliases:
+        val = profile.get(alias)
+        if isinstance(val, bool):
+            return True  # False is a valid explicit answer (e.g. claims_last_3_years=False)
+        if _positive(val) is not None:
+            return True
+    return False
 
 
 def _required_input_specs(profile: Dict[str, Any], covers: List[str]) -> List[Dict[str, Any]]:
@@ -669,6 +733,8 @@ def _referral_flags(
         flags.append("Aggregate selected SI exceeds INR 50 Cr; route to underwriter approval.")
     if "cyber_liability" in covers and _float(scores.get("Cyber Technical Risk")) >= 85:
         flags.append("Cyber risk score is 85+; require control questionnaire before firm pricing.")
+    if "cyber_liability" in covers and _float(profile.get("data_records_lakhs"), 0) >= 100:
+        flags.append("Data records exceed 10M (100 lakhs); DPDP significant-data-fiduciary rules apply — confirm compliance documentation.")
     if any(c in covers for c in ("property_fire", "property_all_risk")) and _float(inputs.get("property_sum_insured_cr")) > 25:
         flags.append("Property SI exceeds INR 25 Cr; validate occupancy, protection, and catastrophe exposure.")
     if profile.get("facility_climate_risk_zone") in ("High", "Extreme", "Very High"):

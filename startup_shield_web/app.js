@@ -1310,15 +1310,19 @@ function renderPricePanel(quote, tagLabel, tagClass, subtitle) {
     </div>`;
 }
 
+function reviseQuoteInputs() {
+  state.quotePanelMode = "edit";
+  renderResults(window.__result);
+}
+
 function renderDualPricingPanel(result) {
   const bundleQ = result.bundle_only_pricing_quote;
   const fullQ   = result.pricing_engine_quote;
   const bundleName = result.bundle_match?.name || "Recommended bundle";
   const fullCount  = fullQ?.covers_to_price?.length || fullQ?.cover_count || "";
 
-  if (!isQuoted(bundleQ) && !isQuoted(fullQ)) {
-    // Neither is quoted yet — show one shared input form sourced from the full quote
-    // (its required_inputs is a superset of the bundle-only quote's)
+  if ((!isQuoted(bundleQ) && !isQuoted(fullQ)) || state.quotePanelMode === "edit") {
+    state.quotePanelMode = null;
     return renderQuoteInputPanel(fullQ || bundleQ);
   }
 
@@ -1326,6 +1330,9 @@ function renderDualPricingPanel(result) {
     <div class="pricing-split">
       ${renderPricePanel(bundleQ, "Bundle price", "bundle", bundleName)}
       ${renderPricePanel(fullQ,   "Full recommended cover", "full", `${fullCount ? fullCount + " covers — " : ""}bundle + critical products`)}
+    </div>
+    <div style="margin-top:10px;text-align:right;">
+      <button class="btn btn-ghost" type="button" onclick="reviseQuoteInputs()">Edit underwriting inputs</button>
     </div>`;
 }
 
@@ -1399,14 +1406,24 @@ function renderQuoteInputPanel(quote) {
           ${covers.slice(0, 10).map(c => `<span class="cover-pill">${esc(c.cover_name || labelize(c.cover_key))}</span>`).join("")}
         </div>` : ""}
       <div class="quote-input-grid">
-        ${fields.map(row => `
+        ${fields.map(row => {
+          const val = quoteFieldValue(row);
+          const inputHtml = row.unit === "yes/no"
+            ? `<select class="f-select" style="height:36px;font-size:13px;"
+                 onchange="setVal('${esc(row.key)}', this.value === 'yes')">
+                 <option value="no" ${!val ? "selected" : ""}>No</option>
+                 <option value="yes" ${val ? "selected" : ""}>Yes</option>
+               </select>`
+            : `<input class="f-input" type="number" min="0" step="${row.unit === "count" ? "1" : "0.01"}"
+                 value="${esc(String(val))}"
+                 oninput="setVal('${esc(row.key)}', Number(this.value))" />`;
+          return `
           <label class="quote-input-field">
-            <span>${esc(row.label)} ${row.unit ? `<em>${esc(row.unit)}</em>` : ""}</span>
-            <input class="f-input" type="number" min="0" step="${row.unit === "count" ? "1" : "0.01"}"
-              value="${esc(String(quoteFieldValue(row)))}"
-              oninput="setVal('${esc(row.key)}', Number(this.value))" />
+            <span>${esc(row.label)} ${row.unit && row.unit !== "yes/no" ? `<em>${esc(row.unit)}</em>` : ""}</span>
+            ${inputHtml}
             ${row.help ? `<small>${esc(row.help)}</small>` : ""}
-          </label>`).join("")}
+          </label>`;
+        }).join("")}
       </div>
       ${missing.length ? `<div class="notice" style="margin-top:12px;">Please fill ${missing.length} required input${missing.length > 1 ? "s" : ""} before estimating.</div>` : ""}
       <div style="display:flex;gap:10px;align-items:center;margin-top:16px;flex-wrap:wrap;">
