@@ -49,6 +49,8 @@ const state = {
   meta: null,
   view: "role",
   section: 0,   // 0..3
+  maxVisitedSection: 0,
+  saveTimer: null,
   profile: {},
   customerProfile: {},
 };
@@ -57,6 +59,122 @@ const state = {
 const $ = (id) => document.getElementById(id);
 const esc = (v) => String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
 const labelize = (k) => k.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase());
+const STORAGE_KEY = "sparc_underwriter_profile_v1";
+
+const SECTION_IDS = ["section-identity","section-shape","section-exposure","section-advanced"];
+const SECTION_FIELDS = {
+  identity: ["startup_name", "sector", "funding_stage", "team_size", "has_investors"],
+  shape: ["operations", "data_sensitivity", "ai_in_product", "customer_type", "product_description"],
+  exposure: ["data_handled", "regulatory", "physical_assets", "biggest_fear"],
+  advanced: [
+    "investor_cn_hk_pct", "cumulative_fundraising_inr_cr", "holdco_domicile",
+    "founder_concentration_index", "dpiit_recognition", "rbi_registration",
+    "gig_headcount_pct", "posh_ic_constituted", "state_footprint",
+    "cert_in_poc_designated", "sdf_probability", "data_localisation_status",
+    "ai_tier", "hardware_software_split", "b2b_pct", "export_eu_pct",
+    "export_us_pct", "export_china_pct", "chinese_supplier_pct_cogs",
+    "listed_customer_brsr_dependency", "facility_climate_risk_zone",
+  ],
+};
+
+const SECTOR_TAILORING = {
+  "Fintech": { key: "fintech", label: "Fintech" },
+  "Healthtech": { key: "healthtech", label: "Healthtech" },
+  "Deeptech / AI / Robotics": { key: "deeptech", label: "Deeptech" },
+  "D2C / Consumer Brands": { key: "d2c", label: "D2C" },
+  "Logistics / Mobility": { key: "logistics", label: "Logistics" },
+};
+
+function getTailoring() {
+  return SECTOR_TAILORING[state.profile?.sector] || null;
+}
+
+function tailoringTag(sectionId) {
+  const t = getTailoring();
+  if (!t) return "";
+  const activeSections = {
+    fintech: ["exposure", "advanced"],
+    healthtech: ["exposure"],
+    deeptech: ["shape", "advanced"],
+    d2c: ["exposure", "advanced"],
+    logistics: ["exposure", "advanced"],
+  }[t.key] || [];
+  if (!activeSections.includes(sectionId)) return "";
+  return `<div class="tailor-tag">Tailored for ${esc(t.label)} <span aria-hidden="true">🎯</span></div>`;
+}
+
+function sectionHeader(index, title, sectionId, suffix="") {
+  return `
+    <div class="section-head">
+      <div>
+        <div class="section-label">${String(index + 1).padStart(2, "0")} — ${esc(title)}${suffix}</div>
+        ${tailoringTag(sectionId)}
+      </div>
+      <span class="save-status">Saved ✓</span>
+    </div>`;
+}
+
+function fieldFilled(key) {
+  const value = state.profile?.[key];
+  if (key === "ai_in_product") return typeof value === "boolean";
+  if (key === "team_size") return Number(value) > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === "boolean") return value === true;
+  if (typeof value === "number") return value > 0;
+  if (value === null || value === undefined) return false;
+  const text = String(value).trim();
+  return text !== "" && text !== "None" && text !== "Unknown";
+}
+
+function sectionCount(sectionId) {
+  const keys = SECTION_FIELDS[sectionId] || [];
+  return {
+    filled: keys.filter(fieldFilled).length,
+    total: keys.length,
+  };
+}
+
+function saveDraftProfile() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      profile: state.profile,
+      maxVisitedSection: state.maxVisitedSection,
+      section: state.section,
+    }));
+  } catch (e) {
+    // localStorage may be unavailable in private or embedded contexts.
+  }
+}
+
+function loadDraftProfile(defaults) {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return structuredClone(defaults);
+    const saved = JSON.parse(raw);
+    state.maxVisitedSection = Math.min(SECTIONS.length - 1, Math.max(0, Number(saved.maxVisitedSection || 0)));
+    state.section = Math.min(state.maxVisitedSection, Math.max(0, Number(saved.section || 0)));
+    return { ...structuredClone(defaults), ...(saved.profile || {}) };
+  } catch (e) {
+    return structuredClone(defaults);
+  }
+}
+
+function showSavedMicroLabel() {
+  const label = document.querySelector(".form-section.visible .save-status");
+  if (!label) return;
+  label.classList.add("visible");
+  clearTimeout(state.saveTimer);
+  state.saveTimer = setTimeout(() => label.classList.remove("visible"), 1200);
+}
+
+function afterProfileChange({ refreshAdaptive = false } = {}) {
+  saveDraftProfile();
+  if (refreshAdaptive) refreshAdaptiveSections();
+  updateProgress();
+  updateProfileSummary();
+  updateSectionScorePreview();
+  showSavedMicroLabel();
+}
 
 const PRODUCT_BLURBS = {
   "CYBER":                            "Covers data breach response, ransomware recovery, and regulatory penalties — directly required by CERT-In Directions 2022 and the DPDP Act.",
@@ -96,10 +214,10 @@ async function init() {
     const serverMeta = await res.json();
     // Merge: server values take priority, stub fills any missing fields
     state.meta = { ...stub, ...serverMeta };
-    state.profile = structuredClone(state.meta.defaults);
+    state.profile = loadDraftProfile(state.meta.defaults);
   } catch (e) {
     state.meta = stub;
-    state.profile = structuredClone(state.meta.defaults);
+    state.profile = loadDraftProfile(state.meta.defaults);
   }
   resetCustomerProfile();
   renderRoleSelection();
@@ -553,10 +671,17 @@ function renderCustomerResults(result) {
 
 function renderForm() {
   state.view = "underwriter";
-  state.section = 0;
+  state.section = Math.min(SECTIONS.length - 1, Math.max(0, state.section || 0));
+  state.maxVisitedSection = Math.max(state.maxVisitedSection || 0, state.section);
   const mc = $("main-content");
   mc.innerHTML = `
     <div class="intake-shell">
+      <aside class="step-sidebar">
+        <div class="step-sidebar-title">Assessment steps</div>
+        <div class="step-sidebar-sub">Jump between visited sections.</div>
+        <nav class="step-list" id="section-sidebar"></nav>
+      </aside>
+
       <main class="intake-main">
         <div class="intake-hero">
           <div class="intake-eyebrow">Risk Analysis</div>
@@ -585,6 +710,10 @@ function renderForm() {
           <div class="sidebar-card-label">Your profile so far</div>
           <div id="profile-summary"></div>
         </div>
+        <div class="sidebar-card section-score-card">
+          <div class="sidebar-card-label">Section score preview</div>
+          <div id="section-score-preview"></div>
+        </div>
         <div class="sidebar-card">
           <div class="sidebar-card-label">We'll calculate</div>
           <div class="info-list">
@@ -602,8 +731,9 @@ function renderForm() {
 
   bindForm();
   updateProgress();
-  showSection(0);
+  showSection(state.section, { noScroll: true });
   updateProfileSummary();
+  updateSectionScorePreview();
 }
 
 /* ── Section 0: Identity ──────────────────────────────────── */
@@ -626,6 +756,7 @@ function renderSectionIdentity() {
 
   return `
     <div class="form-section" id="section-identity">
+      ${sectionHeader(0, "Identity", "identity")}
       <div class="section-label">01 — Identity</div>
 
       <div class="field-group">
@@ -667,6 +798,7 @@ function renderSectionIdentity() {
 function renderSectionShape() {
   const meta = state.meta;
   const p = state.profile;
+  const tailoring = getTailoring();
 
   const opsCards = meta.operations.map(s => `
     <button class="choice-card ${p.operations===s?"active":""}" type="button" data-key="operations" data-value="${esc(s)}" onclick="chooseCard(this,'operations',false)">
@@ -680,8 +812,18 @@ function renderSectionShape() {
   const custPills = meta.customerTypeOptions.map(v=>`
     <button class="pill ${(p.customer_type||[]).includes(v)?"active":""}" type="button" data-key="customer_type" data-value="${esc(v)}" onclick="chooseVal('customer_type','${esc(v)}',true)">${esc(v)}</button>`).join("");
 
+  const aiTierInline = tailoring?.key === "deeptech" && p.ai_in_product ? `
+    <div class="branch-subfield">
+      <label>AI Tier</label>
+      <select class="f-select" onchange="setVal('ai_tier',this.value||'None')">
+        ${(meta.aiTiers || ["None","Applied","Autonomous","Frontier"]).map(o=>`<option value="${esc(o)}" ${p.ai_tier===o?"selected":""}>${esc(o)}</option>`).join("")}
+      </select>
+      <small>Relevant to Deeptech ↑</small>
+    </div>` : "";
+
   return `
     <div class="form-section" id="section-shape">
+      ${sectionHeader(1, "Shape", "shape")}
       <div class="section-label">02 — Shape</div>
 
       <div class="field-group">
@@ -699,6 +841,7 @@ function renderSectionShape() {
           <div class="pill-grid">
             ${["No","Yes"].map(v=>`<button class="pill ${(p.ai_in_product?(v==="Yes"):(v==="No"))?"active":""}" type="button" data-key="ai_toggle" data-value="${v}" onclick="setAI('${v}')">${v}</button>`).join("")}
           </div>
+          ${aiTierInline}
         </div>
       </div>
 
@@ -715,18 +858,39 @@ function renderSectionShape() {
 }
 
 /* ── Section 2: Exposure ──────────────────────────────────── */
+function pillItem(item) {
+  if (typeof item === "string") return { label: item, value: item, relevant: false };
+  return {
+    label: item.label || item.value || "",
+    value: item.value || item.label || "",
+    relevant: !!item.relevant,
+  };
+}
+
+function removeValuesFromGroups(groups, values) {
+  const banned = new Set(values);
+  return groups.map(group => ({
+    ...group,
+    items: (group.items || []).filter(item => !banned.has(pillItem(item).value)),
+  })).filter(group => group.rule || group.heading || group.items.length);
+}
+
 function mkPillsGrouped(groups, profileKey) {
   return groups.map(({heading, items, rule}) => [
     rule ? `<span class="pill-divider-rule"></span>` : "",
     heading ? `<span class="pill-divider">${esc(heading)}</span>` : "",
-    ...items.map(v =>
-      `<button class="pill ${(state.profile[profileKey]||[]).includes(v)?"active":""}" type="button" data-key="${profileKey}" data-value="${esc(v)}" onclick="chooseVal('${profileKey}','${esc(v)}',true)">${esc(v)}</button>`
-    )
+    ...(items || []).map(item => {
+      const pItem = pillItem(item);
+      const active = (state.profile[profileKey] || []).includes(pItem.value);
+      const cls = `pill ${active ? "active" : ""} ${pItem.relevant ? "relevant" : ""}`.trim();
+      return `<button class="${cls}" type="button" data-key="${profileKey}" data-value="${esc(pItem.value)}" onclick="chooseVal('${profileKey}','${esc(pItem.value)}',true)">${esc(pItem.label)}</button>`;
+    })
   ].join("")).join("");
 }
 
 function renderSectionExposure() {
-  const dataGroups = [
+  const tailoring = getTailoring();
+  let dataGroups = [
     { heading: "Personal & financial",
       items: ["Payments / financial transactions", "Personal identity data (KYC / Aadhaar)", "Health / medical records", "Minors' / children's data", "Sensitive personal data (DPDP Act)"] },
     { heading: "Business & IP",
@@ -737,7 +901,7 @@ function renderSectionExposure() {
       items: ["None of the above"] },
   ];
 
-  const regGroups = [
+  let regGroups = [
     { heading: "Financial & data",
       items: ["RBI / SEBI / IRDAI licensed", "DPDP Act obligations", "IT Act / CERT-In obligations"] },
     { heading: "Health & life sciences",
@@ -750,7 +914,7 @@ function renderSectionExposure() {
       items: ["None / minimal"] },
   ];
 
-  const assetGroups = [
+  let assetGroups = [
     { heading: "Premises & retail",
       items: ["Office / coworking space", "Warehouse / fulfilment centre", "Retail stores / kiosks"] },
     { heading: "Production & lab",
@@ -763,9 +927,57 @@ function renderSectionExposure() {
       items: ["None - fully cloud"] },
   ];
 
+  if (tailoring?.key === "fintech") {
+    regGroups = [
+      {
+        heading: "Relevant to Fintech ↑",
+        items: [
+          { label: "RBI / NBFC licensing", value: "RBI / SEBI / IRDAI licensed", relevant: true },
+          { label: "SEBI regulations", value: "RBI / SEBI / IRDAI licensed", relevant: true },
+        ],
+      },
+      ...removeValuesFromGroups(regGroups, ["RBI / SEBI / IRDAI licensed"]),
+    ];
+  } else if (tailoring?.key === "healthtech") {
+    dataGroups = [
+      {
+        heading: "Relevant to Healthtech ↑",
+        items: [
+          { label: "Health / medical records", value: "Health / medical records", relevant: true },
+          { label: "Biometric data", value: "Employee / HR data (payroll, biometrics)", relevant: true },
+        ],
+      },
+      ...removeValuesFromGroups(dataGroups, ["Health / medical records", "Employee / HR data (payroll, biometrics)"]),
+    ];
+    regGroups = [
+      {
+        heading: "Most relevant to Healthtech ↑",
+        items: [{ label: "DPDP Act obligations", value: "DPDP Act obligations", relevant: true }],
+      },
+      ...removeValuesFromGroups(regGroups, ["DPDP Act obligations"]),
+    ];
+  } else if (tailoring?.key === "d2c") {
+    dataGroups = [
+      {
+        heading: "Relevant to D2C ↑",
+        items: [{ label: "Customer behavioural / usage data", value: "Customer behavioural / usage data", relevant: true }],
+      },
+      ...removeValuesFromGroups(dataGroups, ["Customer behavioural / usage data"]),
+    ];
+  } else if (tailoring?.key === "logistics") {
+    assetGroups = [
+      {
+        heading: "Relevant to Logistics ↑",
+        items: [{ label: "Fleet / vehicles", value: "Vehicles / delivery fleet", relevant: true }],
+      },
+      ...removeValuesFromGroups(assetGroups, ["Vehicles / delivery fleet"]),
+    ];
+  }
+
   const p = state.profile;
   return `
     <div class="form-section" id="section-exposure">
+      ${sectionHeader(2, "Exposure", "exposure")}
       <div class="section-label">03 — Exposure</div>
 
       <div class="field-group">
@@ -794,6 +1006,7 @@ function renderSectionExposure() {
 function renderSectionAdvanced() {
   const meta = state.meta;
   const p = state.profile;
+  const tailoring = getTailoring();
 
   const mkSlider = (key, label, min, max, step, decimals=2) => {
     const val = Number(p[key] ?? 0);
@@ -827,20 +1040,65 @@ function renderSectionAdvanced() {
   const statePills = meta.states.map(s=>`
     <button class="pill ${(p.state_footprint||[]).includes(s)?"active":""}" type="button" data-key="state_footprint" data-value="${esc(s)}" onclick="chooseVal('state_footprint','${esc(s)}',true)">${esc(s)}</button>`).join("");
 
+  const rbiProminent = tailoring?.key === "fintech" ? `
+    <div class="branch-panel">
+      <div class="branch-label">Relevant to Fintech ↑</div>
+      ${mkSelect("rbi_registration","RBI registration",meta.rbiRegistrations,"None")}
+    </div>` : "";
+  const governanceSelects = tailoring?.key === "fintech"
+    ? `${mkSelect("holdco_domicile","Holdco domicile",meta.holdcoDomiciles)}`
+    : `${mkSelect("holdco_domicile","Holdco domicile",meta.holdcoDomiciles)}${mkSelect("rbi_registration","RBI registration",meta.rbiRegistrations,"None")}`;
+
+  const gigWorkforce = tailoring?.key === "logistics" ? `
+    <div class="branch-panel">
+      <div class="branch-label">Relevant to Logistics ↑</div>
+      ${mkSlider("gig_headcount_pct","Gig / contractor workforce %",0,1,.01)}
+      <p class="branch-note">Typically 40–80% for logistics startups</p>
+    </div>` : mkSlider("gig_headcount_pct","Gig / contractor workforce %",0,1,.01);
+
+  const dataAiTop = tailoring?.key === "deeptech" ? `
+    <div class="branch-panel">
+      <div class="branch-label">Relevant to Deeptech ↑</div>
+      <div class="branch-mixed-grid">
+        ${mkSelect("ai_tier","AI tier",meta.aiTiers)}
+        ${mkSlider("sdf_probability","SDF likelihood",0,1,.01)}
+      </div>
+    </div>` : "";
+  const dataAiSliders = tailoring?.key === "deeptech"
+    ? `${mkSlider("hardware_software_split","Hardware revenue share",0,1,.01)}`
+    : `${mkSlider("sdf_probability","SDF likelihood",0,1,.01)}${mkSlider("hardware_software_split","Hardware revenue share",0,1,.01)}`;
+  const dataAiSelects = tailoring?.key === "deeptech"
+    ? `${mkSelect("data_localisation_status","Data localisation",["Unknown","Full_onshore","Hybrid","Offshore"])}`
+    : `${mkSelect("data_localisation_status","Data localisation",["Unknown","Full_onshore","Hybrid","Offshore"])}${mkSelect("ai_tier","AI tier",meta.aiTiers)}`;
+
+  const internationalExposure = tailoring?.key === "d2c" ? `
+    <div class="branch-panel">
+      <div class="branch-label">International exposure</div>
+      <div class="branch-slider-grid">
+        ${mkSlider("export_eu_pct","EU revenue",0,1,.01)}
+        ${mkSlider("export_us_pct","US revenue",0,1,.01)}
+        ${mkSlider("export_china_pct","China revenue",0,1,.01)}
+      </div>
+    </div>` : "";
+  const marketSliders = tailoring?.key === "d2c"
+    ? `${mkSlider("b2b_pct","B2B revenue",0,1,.01)}${mkSlider("chinese_supplier_pct_cogs","Chinese supplier COGS",0,1,.01)}`
+    : `${mkSlider("b2b_pct","B2B revenue",0,1,.01)}${mkSlider("export_eu_pct","EU revenue",0,1,.01)}${mkSlider("export_us_pct","US revenue",0,1,.01)}${mkSlider("export_china_pct","China revenue",0,1,.01)}${mkSlider("chinese_supplier_pct_cogs","Chinese supplier COGS",0,1,.01)}`;
+
   return `
     <div class="form-section" id="section-advanced">
+      ${sectionHeader(3, "Advanced", "advanced", ` <span style="font-weight:500;color:var(--ink-faint);text-transform:none;letter-spacing:0;">(optional)</span>`)}
       <div class="section-label">04 — Advanced <span style="font-weight:500;color:var(--ink-faint);text-transform:none;letter-spacing:0;">(optional)</span></div>
 
       <div class="adv-group">
         <div class="adv-group-title">Governance &amp; capital</div>
+        ${rbiProminent}
         <div class="adv-sliders">
           ${mkSlider("investor_cn_hk_pct","China / HK investor BO",0,1,.01)}
           ${mkSlider("cumulative_fundraising_inr_cr","Total fundraising (INR Cr)",0,10000,10,0)}
           ${mkSlider("founder_concentration_index","Founder concentration index",0,1,.01)}
         </div>
         <div class="adv-selects">
-          ${mkSelect("holdco_domicile","Holdco domicile",meta.holdcoDomiciles)}
-          ${mkSelect("rbi_registration","RBI registration",meta.rbiRegistrations,"None")}
+          ${governanceSelects}
         </div>
         <div class="adv-checks">${mkCheck("dpiit_recognition","DPIIT recognised startup")}</div>
       </div>
@@ -848,7 +1106,7 @@ function renderSectionAdvanced() {
       <div class="adv-group">
         <div class="adv-group-title">Workforce &amp; gig risk</div>
         <div class="adv-sliders">
-          ${mkSlider("gig_headcount_pct","Gig / contractor workforce %",0,1,.01)}
+          ${gigWorkforce}
         </div>
         <div class="adv-checks">
           ${mkCheck("posh_ic_constituted","POSH IC constituted")}
@@ -862,24 +1120,20 @@ function renderSectionAdvanced() {
 
       <div class="adv-group">
         <div class="adv-group-title">Data &amp; AI</div>
+        ${dataAiTop}
         <div class="adv-sliders">
-          ${mkSlider("sdf_probability","SDF likelihood",0,1,.01)}
-          ${mkSlider("hardware_software_split","Hardware revenue share",0,1,.01)}
+          ${dataAiSliders}
         </div>
         <div class="adv-selects">
-          ${mkSelect("data_localisation_status","Data localisation",["Unknown","Full_onshore","Hybrid","Offshore"])}
-          ${mkSelect("ai_tier","AI tier",meta.aiTiers)}
+          ${dataAiSelects}
         </div>
       </div>
 
       <div class="adv-group">
         <div class="adv-group-title">Market &amp; supply chain</div>
+        ${internationalExposure}
         <div class="adv-sliders">
-          ${mkSlider("b2b_pct","B2B revenue",0,1,.01)}
-          ${mkSlider("export_eu_pct","EU revenue",0,1,.01)}
-          ${mkSlider("export_us_pct","US revenue",0,1,.01)}
-          ${mkSlider("export_china_pct","China revenue",0,1,.01)}
-          ${mkSlider("chinese_supplier_pct_cogs","Chinese supplier COGS",0,1,.01)}
+          ${marketSliders}
         </div>
         <div class="adv-checks">${mkCheck("listed_customer_brsr_dependency","Listed customers require BRSR")}</div>
       </div>
@@ -896,45 +1150,86 @@ function renderSectionAdvanced() {
 /* ─── FORM BIND / INTERACTIONS ──────────────────────────────── */
 function bindForm() {
   $("back-btn").onclick = () => {
-    if (state.section > 0) { state.section--; showSection(state.section); }
+    if (state.section > 0) { showSection(state.section - 1); }
   };
   $("next-btn").onclick = () => {
     if (state.section < SECTIONS.length - 1) {
-      state.section++;
-      showSection(state.section);
+      showSection(state.section + 1);
     } else {
       runAnalysis();
     }
   };
 }
 
-function showSection(idx) {
+function showSection(idx, opts = {}) {
+  const nextIdx = Math.min(SECTIONS.length - 1, Math.max(0, idx));
+  state.section = nextIdx;
+  state.maxVisitedSection = Math.max(state.maxVisitedSection || 0, nextIdx);
+  saveDraftProfile();
   document.querySelectorAll(".form-section").forEach(el => el.classList.remove("visible"));
-  const ids = ["section-identity","section-shape","section-exposure","section-advanced"];
-  const el = $(ids[idx]);
+  const el = $(SECTION_IDS[nextIdx]);
   if (el) el.classList.add("visible");
 
-  $("back-btn").disabled = idx === 0;
-  $("next-btn").textContent = idx === SECTIONS.length - 1 ? "Analyse my startup →" : "Continue →";
+  $("back-btn").disabled = nextIdx === 0;
+  $("next-btn").textContent = nextIdx === SECTIONS.length - 1 ? "Analyse my startup →" : "Continue →";
+  $("next-btn").classList.toggle("analyse-ready", nextIdx === SECTIONS.length - 1);
   updateProgress();
   updateProfileSummary();
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  updateSectionScorePreview();
+  if (!opts.noScroll) window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function updateProgress() {
   const row = $("progress-row");
-  if (!row) return;
-  row.innerHTML = SECTIONS.map((s, i) => {
-    const cls = i < state.section ? "done" : i === state.section ? "active" : "";
-    const line = i < SECTIONS.length - 1 ? `<div class="progress-line"></div>` : "";
-    return `<div class="progress-step ${cls}"><div class="progress-dot"></div>${s.label}</div>${line}`;
-  }).join("");
+  const sidebar = $("section-sidebar");
+  const renderStep = (s, i, compact = false) => {
+    const count = sectionCount(s.id);
+    const done = i < state.maxVisitedSection;
+    const active = i === state.section;
+    const locked = i > state.maxVisitedSection;
+    const cls = `${done ? "done" : ""} ${active ? "active" : ""} ${locked ? "locked" : ""}`.trim();
+    const completed = done ? `<span class="step-complete">completed ✓ · ${count.filled}/${count.total}</span>` : `<span class="step-count">${count.filled}/${count.total}</span>`;
+    const disabled = locked ? "disabled" : "";
+    return `
+      <button class="${compact ? "progress-step" : "sidebar-step"} ${cls}" type="button" ${disabled} onclick="jumpToSection(${i})">
+        <span class="step-icon">${esc(s.icon)}</span>
+        <span class="step-text">
+          <strong>${esc(s.label)}</strong>
+          ${compact ? `<em>${count.filled}/${count.total}</em>` : completed}
+        </span>
+      </button>`;
+  };
+  if (row) {
+    row.innerHTML = SECTIONS.map((s, i) => {
+      const line = i < SECTIONS.length - 1 ? `<div class="progress-line"></div>` : "";
+      return renderStep(s, i, true) + line;
+    }).join("");
+  }
+  if (sidebar) {
+    sidebar.innerHTML = SECTIONS.map((s, i) => renderStep(s, i)).join("");
+  }
+}
+
+window.jumpToSection = (idx) => {
+  if (idx <= state.maxVisitedSection) showSection(idx);
+};
+
+function refreshAdaptiveSections() {
+  const holder = $("form-sections");
+  if (!holder) return;
+  holder.innerHTML = `
+    ${renderSectionIdentity()}
+    ${renderSectionShape()}
+    ${renderSectionExposure()}
+    ${renderSectionAdvanced()}`;
+  showSection(state.section, { noScroll: true });
 }
 
 // Global helpers called from onclick attributes
 window.setVal = (key, val) => {
   state.profile[key] = val;
-  updateProfileSummary();
+  if (key === "ai_tier") state.profile.ai_in_product = val !== "None";
+  afterProfileChange({ refreshAdaptive: key === "ai_tier" && getTailoring()?.key === "deeptech" });
 };
 
 window.setAI = (v) => {
@@ -943,7 +1238,7 @@ window.setAI = (v) => {
   document.querySelectorAll(`.pill[data-key="ai_toggle"]`).forEach(btn => {
     btn.classList.toggle("active", btn.dataset.value === v);
   });
-  updateProfileSummary();
+  afterProfileChange({ refreshAdaptive: getTailoring()?.key === "deeptech" });
 };
 
 window.chooseCard = (el, key, multi) => {
@@ -959,7 +1254,7 @@ window.chooseCard = (el, key, multi) => {
     cur.has(val) ? cur.delete(val) : cur.add(val);
     state.profile[key] = [...cur];
   }
-  updateProfileSummary();
+  afterProfileChange({ refreshAdaptive: key === "sector" });
 };
 
 window.chooseVal = (key, val, multi) => {
@@ -976,7 +1271,7 @@ window.chooseVal = (key, val, multi) => {
       b.classList.toggle("active", cur.has(b.dataset.value));
     });
   }
-  updateProfileSummary();
+  afterProfileChange();
 };
 
 function updateProfileSummary() {
@@ -996,6 +1291,69 @@ function updateProfileSummary() {
       <span class="profile-item-key">${k}</span>
       <span class="profile-item-val">${esc(String(v))}</span>
     </div>`).join("");
+}
+
+function riskTone(level) {
+  if (level >= 3) return "red";
+  if (level >= 2) return "amber";
+  return "green";
+}
+
+function operationalRiskPreview() {
+  const p = state.profile;
+  let level = 1;
+  if (p.data_sensitivity === "High" || p.data_sensitivity === "Very High") level += 1;
+  if (["Hybrid", "Physical-only", "Offline / Physical", "Hardware / IoT"].includes(p.operations)) level += 1;
+  if (p.operations === "Marketplace") level += 1;
+  return { tone: riskTone(level), label: level >= 3 ? "High" : level === 2 ? "Medium" : "Low" };
+}
+
+function exposureRiskPreview() {
+  const p = state.profile;
+  let level = 1;
+  const sensitive = new Set(["Payments / financial transactions", "Health / medical records", "Personal identity data (KYC / Aadhaar)", "Sensitive personal data (DPDP Act)"]);
+  if ((p.data_handled || []).some(v => sensitive.has(v))) level += 1;
+  if ((p.regulatory || []).filter(v => !String(v).includes("None")).length >= 2) level += 1;
+  if ((p.physical_assets || []).filter(v => !String(v).includes("None")).length >= 2) level += 1;
+  return { tone: riskTone(level), label: level >= 3 ? "High" : level === 2 ? "Medium" : "Low" };
+}
+
+function updateSectionScorePreview() {
+  const el = $("section-score-preview");
+  if (!el) return;
+  const p = state.profile;
+  const items = [];
+  if (state.maxVisitedSection > 0) {
+    items.push(`
+      <div class="score-preview-row locked">
+        <span>Profile</span>
+        <strong>${esc(p.sector || "Startup")} · ${esc(p.funding_stage || "Stage")} · ${esc(p.team_size || "—")} people</strong>
+      </div>`);
+  }
+  if (state.maxVisitedSection > 1) {
+    const op = operationalRiskPreview();
+    items.push(`
+      <div class="score-preview-row locked">
+        <span>Operational Risk</span>
+        <strong class="risk-pill ${op.tone}">${op.label}</strong>
+      </div>`);
+  }
+  if (state.maxVisitedSection > 2) {
+    const exposure = exposureRiskPreview();
+    items.push(`
+      <div class="score-preview-row locked">
+        <span>Exposure Risk</span>
+        <strong class="risk-pill ${exposure.tone}">${exposure.label}</strong>
+      </div>`);
+  }
+  if (state.maxVisitedSection >= 3) {
+    items.push(`
+      <div class="score-preview-ready">
+        <strong>Full risk profile ready</strong>
+        <span>Analyse is ready when you are.</span>
+      </div>`);
+  }
+  el.innerHTML = items.length ? items.join("") : `<p class="score-preview-empty">Complete Identity to lock the first preview.</p>`;
 }
 
 /* ─── ANALYSIS ───────────────────────────────────────────────── */
