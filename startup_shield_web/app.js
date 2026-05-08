@@ -1120,10 +1120,20 @@ function renderResults(result) {
       <div class="result-section" id="products">
         <div class="result-section-head">
           <div class="result-section-bar"></div>
-          <div class="result-section-title">Recommended products</div>
+          <div class="result-section-title">Additional recommended products</div>
         </div>
         <div class="products-list">
-          ${renderProductRows(result.recommendations, result.product_mapping)}
+          ${(() => {
+            const bundleKeys = new Set([
+              ...(result.bundle_match?.mandatory_covers || []),
+              ...(result.bundle_match?.optional_covers || []),
+            ]);
+            const additionalRecs = (result.recommendations || []).filter(r => !bundleKeys.has(r.key));
+            if (!additionalRecs.length) {
+              return `<div class="r-card">${emptyState("✓", "All recommended products are in your bundle", "The engine has no additional products to recommend outside the selected bundle.")}</div>`;
+            }
+            return renderProductRows(additionalRecs, result.product_mapping);
+          })()}
         </div>
         ${renderBadProducts(result.not_preferred_recommendations)}
       </div>
