@@ -30,6 +30,16 @@ PREMIUM_RANGES = {
         "small": {"min_lakh": 0.4, "max_lakh": 1.5, "basis": "INR 10L cover, 50 employees"},
         "growth": {"min_lakh": 1.5, "max_lakh": 5.0, "basis": "INR 10L cover, 150 employees"},
     },
+    "group_criti_shield": {
+        "micro": {"min_lakh": 0.05, "max_lakh": 0.30, "basis": "INR 5L critical illness cover, 10 employees"},
+        "small": {"min_lakh": 0.30, "max_lakh": 1.20, "basis": "INR 5L cover, 50 employees"},
+        "growth": {"min_lakh": 1.20, "max_lakh": 4.00, "basis": "INR 10L cover, 150 employees"},
+    },
+    "group_hospishield": {
+        "micro": {"min_lakh": 0.06, "max_lakh": 0.40, "basis": "INR 1,000/day hospital cash, 10 employees"},
+        "small": {"min_lakh": 0.40, "max_lakh": 1.50, "basis": "INR 1,000/day, 50 employees"},
+        "growth": {"min_lakh": 1.50, "max_lakh": 5.00, "basis": "INR 2,000/day, 150 employees"},
+    },
     "employees_comp": {
         "micro": {"min_lakh": 0.2, "max_lakh": 0.8, "basis": "Small team, limited hazardous ops"},
         "small": {"min_lakh": 0.8, "max_lakh": 2.5, "basis": "Mid-size team, moderate hazardous ops"},

@@ -117,6 +117,14 @@ COVER_ALIASES = {
     "EVENT_PRODUCTION": "event_production",
     "event_production": "event_production",
     "ENTERTAINMENT_PRODUCTION": "event_production",
+    "GROUP_CRITI_SHIELD": "group_criti_shield",
+    "group_criti_shield": "group_criti_shield",
+    "criti_shield": "group_criti_shield",
+    "GROUP_HOSPISHIELD": "group_hospishield",
+    "group_hospishield": "group_hospishield",
+    "hospishield": "group_hospishield",
+    "BHARAT_LAGHU": "property_fire",
+    "bharat_laghu": "property_fire",
 }
 
 
@@ -285,6 +293,18 @@ COVER_SPECS: Dict[str, CoverSpec] = {
         "Employment Practices Liability", "pi_limit_cr", 0.45, 1.00,
         ("Gig & Labour Risk", "Governance & Fraud Risk", "Reputation Risk"),
     ),
+    # rate 0.05 lakh/employee → effective ~₹5,600/emp at mid-loading; critical illness rider market India 2025
+    "group_criti_shield": CoverSpec(
+        "Group Critical Illness Shield", "employee_count", 0.05, 0.30,
+        ("Key Person Risk", "Gig & Labour Risk"),
+        pricing_unit="per_employee",
+    ),
+    # rate 0.06 lakh/employee → effective ~₹6,750/emp at mid-loading; hospital cash rider market India 2025
+    "group_hospishield": CoverSpec(
+        "Group HospiShield (Hospital Daily Cash)", "employee_count", 0.06, 0.40,
+        ("Key Person Risk", "Gig & Labour Risk"),
+        pricing_unit="per_employee",
+    ),
 }
 
 INPUT_FIELD_LABELS = {
@@ -368,6 +388,8 @@ REQUIRED_INPUTS_BY_COVER = {
     "product_recall": (("recall_limit_cr",), ("annual_revenue_cr", "revenue_cr"), ("claims_last_3_years",)),
     "event_production": (("production_budget_cr",), ("claims_last_3_years",)),
     "employment_practices": (("pi_limit_cr", "employment_practices_limit_cr"), ("claims_last_3_years",)),
+    "group_criti_shield": (("employee_count", "team_size", "headcount_total"),),
+    "group_hospishield": (("employee_count", "team_size", "headcount_total"),),
 }
 
 

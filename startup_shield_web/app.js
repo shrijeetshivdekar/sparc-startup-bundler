@@ -64,18 +64,17 @@ const STORAGE_KEY = "sparc_underwriter_profile_v1";
 const SECTION_IDS = ["section-identity","section-shape","section-exposure","section-advanced"];
 const SECTION_FIELDS = {
   identity: ["startup_name", "sector", "funding_stage", "team_size", "has_investors"],
-  shape: ["operations", "data_sensitivity", "ai_in_product", "customer_type", "product_description"],
+  shape: ["operations", "data_sensitivity", "ai_in_product", "customer_type", "annual_revenue_cr", "total_insurable_asset_value_cr", "product_description"],
   exposure: ["data_handled", "regulatory", "physical_assets", "biggest_fear"],
   advanced: [
     "investor_cn_hk_pct", "cumulative_fundraising_inr_cr", "holdco_domicile",
-    "founder_concentration_index", "dpiit_recognition", "rbi_registration",
+    "founder_equity_pct", "has_independent_directors", "dpiit_recognition", "rbi_registration",
     "gig_headcount_pct", "posh_ic_constituted", "state_footprint",
-    "cert_in_poc_designated", "sdf_probability", "data_localisation_status",
+    "cert_in_poc_designated", "sdf_likely", "data_localisation_status",
     "ai_tier", "hardware_software_split", "b2b_pct", "export_eu_pct",
     "export_us_pct", "export_china_pct", "chinese_supplier_pct_cogs",
     "listed_customer_brsr_dependency", "facility_climate_risk_zone",
-    "annual_revenue_cr", "total_insurable_asset_value_cr", "gross_profit_cr",
-    "fleet_count", "healthcare_operations", "payment_or_card_program",
+    "gross_profit_cr", "fleet_count", "healthcare_operations", "payment_or_card_program",
     "product_recall_exposure", "food_or_pharma_manufacturing",
     "contract_bid_or_performance_bond_need", "project_value_cr",
     "event_or_production_operations", "claims_last_3_years",
@@ -203,6 +202,14 @@ const COVER_ALIASES = {
   "epl": "employment_practices",
   "EPLI": "employment_practices",
   "epli": "employment_practices",
+  "GROUP_CRITI_SHIELD": "group_criti_shield",
+  "group_criti_shield": "group_criti_shield",
+  "criti_shield": "group_criti_shield",
+  "GROUP_HOSPISHIELD": "group_hospishield",
+  "group_hospishield": "group_hospishield",
+  "hospishield": "group_hospishield",
+  "BHARAT_LAGHU": "property_fire",
+  "bharat_laghu": "property_fire",
 };
 
 const PRODUCT_BLURBS = {
@@ -226,6 +233,10 @@ const PRODUCT_BLURBS = {
   "EMPLOYMENT_PRACTICES":             "Covers legal defence and settlements if an employee sues the company for wrongful termination, discrimination, harassment, or POSH Act violations. Mandatory in any startup approaching 50+ headcount with active hiring and termination activity.",
   "employment_practices":             "Covers legal defence and settlements if an employee sues the company for wrongful termination, discrimination, harassment, or POSH Act violations. Mandatory in any startup approaching 50+ headcount with active hiring and termination activity.",
   "EPL":                              "Covers legal defence and settlements if an employee sues the company for wrongful termination, discrimination, harassment, or POSH Act violations. Mandatory in any startup approaching 50+ headcount with active hiring and termination activity.",
+  "GROUP_CRITI_SHIELD":               "Pays a lump-sum benefit to employees diagnosed with a covered critical illness (cancer, heart attack, stroke, organ failure). Supplements group health when treatment costs exceed hospitalisation — a strong retention benefit for senior hires.",
+  "group_criti_shield":               "Pays a lump-sum benefit to employees diagnosed with a covered critical illness (cancer, heart attack, stroke, organ failure). Supplements group health when treatment costs exceed hospitalisation — a strong retention benefit for senior hires.",
+  "GROUP_HOSPISHIELD":                "Daily hospital cash benefit that pays a fixed amount per day of hospitalisation regardless of actual medical bills — covers incidentals, loss of income, and recovery costs not reimbursed by the primary group health policy.",
+  "group_hospishield":                "Daily hospital cash benefit that pays a fixed amount per day of hospitalisation regardless of actual medical bills — covers incidentals, loss of income, and recovery costs not reimbursed by the primary group health policy.",
 };
 Object.assign(PRODUCT_BLURBS, {
   "BUSINESS_INTERRUPTION": "Covers lost gross profit and continuing expenses after insured property damage disrupts operations.",
@@ -257,6 +268,38 @@ const formatVal = (v) => {
   if (typeof v === "boolean") return v ? "Yes" : "No";
   return String(v);
 };
+
+const API_OPERATION_MAP = {
+  "Hardware / IoT": "Hybrid",
+  "Marketplace": "Digital-only",
+  "Hybrid (online+offline)": "Hybrid",
+  "Offline / Physical": "Physical-only",
+};
+
+const REVENUE_MAP = {
+  "Pre-revenue": 0,
+  "Below INR 1 Cr": 0.5,
+  "INR 1-5 Cr": 3,
+  "INR 5-25 Cr": 15,
+  "INR 25 Cr+": 50,
+};
+
+const TEAM_MAP = {
+  "1-10": 7,
+  "11-50": 25,
+  "51-200": 100,
+  "200+": 300,
+};
+
+function buildProfile(sourceProfile = state.profile) {
+  const profile = structuredClone(sourceProfile || {});
+  profile.operations = API_OPERATION_MAP[profile.operations] || profile.operations;
+  if (profile.data_sensitivity === "Very High") profile.data_sensitivity = "High";
+  const founderEquity = Number(profile.founder_equity_pct ?? 0.5);
+  profile.founder_concentration_index = founderEquity * (1 - (profile.has_independent_directors ? 0.4 : 0));
+  profile.sdf_probability = profile.sdf_likely ? 0.75 : 0.05;
+  return profile;
+}
 
 /* ─── INIT ───────────────────────────────────────────────────── */
 async function init() {
@@ -301,14 +344,15 @@ function buildStubMeta() {
       investor_cn_hk_pct: 0,
       cumulative_fundraising_inr_cr: 0,
       holdco_domicile: "India",
-      founder_concentration_index: 0.5,
+      founder_equity_pct: 0.5,
+      has_independent_directors: false,
       dpiit_recognition: false,
       rbi_registration: null,
       gig_headcount_pct: 0,
       posh_ic_constituted: false,
       state_footprint: [],
       cert_in_poc_designated: false,
-      sdf_probability: 0.5,
+      sdf_likely: false,
       data_localisation_status: "Unknown",
       hardware_software_split: 0,
       b2b_pct: 0.5,
@@ -341,7 +385,7 @@ function buildStubMeta() {
     subSectorOptions: {},
     fundingStages: ["Pre-seed","Seed","Series A","Series B+"],
     operations: ["Digital-only","Physical-only","Hybrid"],
-    dataSensitivity: ["Low","Medium","High","Very High"],
+    dataSensitivity: ["Low","Medium","High"],
     customerTypeOptions: ["B2B Enterprise","B2B SMB","B2C Consumers","Government / PSU","D2C"],
     dataHandledOptions: [
       "Employee / HR data (payroll, biometrics)",
@@ -395,7 +439,7 @@ function renderApp() {
 function resetCustomerProfile() {
   state.customerProfile = {
     business_name: "",
-    persona: "SaaS founder",
+    persona: null,
     industry: state.meta?.defaults?.sector || "SaaS / Enterprise Software",
     revenue_range: "INR 1-5 Cr",
     team_range: "11-50",
@@ -413,7 +457,7 @@ function renderRoleSelection() {
         <div class="role-copy">
           <div class="intake-eyebrow">Choose experience</div>
           <h1>Start with the input view that fits your role</h1>
-          <p>Select the customer route for a short, persona-led recommendation. Select the underwriter route for the full SPARC intake and risk report.</p>
+          <p>Select the customer route for a short business-friendly recommendation. Select the underwriter route for the full SPARC intake and risk report.</p>
         </div>
         <div class="role-options">
           <button class="role-card role-card-primary" type="button" id="customer-role-btn">
@@ -431,7 +475,7 @@ function renderRoleSelection() {
     </main>`;
 
   $("customer-role-btn").onclick = () => {
-    if (!state.customerProfile?.persona) resetCustomerProfile();
+    if (!state.customerProfile?.industry) resetCustomerProfile();
     renderCustomerInput();
   };
   $("underwriter-role-btn").onclick = () => renderForm();
@@ -464,12 +508,6 @@ function renderCustomerInput() {
           <div class="field-group">
             <label>Business name</label>
             <input class="f-input" type="text" value="${esc(p.business_name)}" placeholder="e.g. BrightPay" data-customer-key="business_name" />
-          </div>
-          <div class="field-group">
-            <label>Which sounds closest to you?</label>
-            <select class="f-select" data-customer-key="persona">
-              ${["SaaS founder","Fintech operator","D2C brand","Healthtech builder","Marketplace platform","Hardware or IoT startup","AI product company"].map(v => `<option ${p.persona===v?"selected":""}>${esc(v)}</option>`).join("")}
-            </select>
           </div>
           <div class="field-group">
             <label>Industry</label>
@@ -564,7 +602,7 @@ function bindCustomerInput() {
 }
 
 function teamRangeToNumber(range) {
-  return { "1-10": 8, "11-50": 25, "51-200": 90, "200+": 250 }[range] || 20;
+  return TEAM_MAP[range] || 25;
 }
 
 function mapCustomerToUnderwritingProfile(customer) {
@@ -573,8 +611,9 @@ function mapCustomerToUnderwritingProfile(customer) {
   profile.startup_name = customer.business_name?.trim() || "Your startup";
   profile.sector = customer.industry || profile.sector;
   profile.funding_stage = customer.funding_status || profile.funding_stage;
-  profile.team_size = teamRangeToNumber(customer.team_range);
-  profile.product_description = `${customer.persona}. Main concern: ${customer.main_concern}. Revenue range: ${customer.revenue_range}.`;
+  profile.team_size = TEAM_MAP[customer.team_range] ?? 25;
+  profile.annual_revenue_cr = REVENUE_MAP[customer.revenue_range] ?? 3;
+  profile.product_description = `Industry: ${customer.industry || profile.sector}. Main concern: ${customer.main_concern}. Revenue range: ${customer.revenue_range}.`;
   profile.has_investors = ["Seed", "Series A", "Series B+"].includes(profile.funding_stage) ? "Yes" : "No";
   profile.customer_type = handles.has("contracts") ? ["B2B Enterprise"] : ["B2C Consumers"];
   profile.operations = handles.has("physical_ops") ? "Hybrid" : "Digital-only";
@@ -606,7 +645,7 @@ function mapCustomerToUnderwritingProfile(customer) {
 
   profile.biggest_fear = customer.main_concern || "";
   profile.b2b_pct = handles.has("contracts") ? 0.75 : 0.25;
-  return profile;
+  return buildProfile(profile);
 }
 
 async function runCustomerAnalysis() {
@@ -888,6 +927,13 @@ function renderSectionShape() {
   const custPills = meta.customerTypeOptions.map(v=>`
     <button class="pill ${(p.customer_type||[]).includes(v)?"active":""}" type="button" data-key="customer_type" data-value="${esc(v)}" onclick="chooseVal('customer_type','${esc(v)}',true)">${esc(v)}</button>`).join("");
 
+  const mkShapeNumber = (key, label, help) => `
+    <div class="field-group">
+      <label>${esc(label)}</label>
+      <input class="f-input" type="number" min="0" step="0.1" value="${esc(p[key] ?? 0)}" oninput="setVal('${key}',Number(this.value||0))" />
+      <small>${esc(help)}</small>
+    </div>`;
+
   const aiTierInline = tailoring?.key === "deeptech" && p.ai_in_product ? `
     <div class="branch-subfield">
       <label>AI Tier</label>
@@ -926,9 +972,15 @@ function renderSectionShape() {
         <div class="pill-grid">${custPills}</div>
       </div>
 
+      <div class="field-row">
+        ${mkShapeNumber("annual_revenue_cr", "Annual revenue / ARR (INR Cr)", "Used for premium sizing. Enter 0 to skip.")}
+        ${mkShapeNumber("total_insurable_asset_value_cr", "Total insurable asset value (INR Cr)", "Used for premium sizing. Enter 0 to skip.")}
+      </div>
+
       <div class="field-group">
         <label>What does your product do? <span style="font-weight:400;color:var(--ink-faint)">(optional)</span></label>
         <textarea class="f-textarea" placeholder="e.g. We build a UPI payment gateway for SMBs…" oninput="setVal('product_description',this.value)">${esc(p.product_description||"")}</textarea>
+        <small>This is shown to your RM and does not affect the score.</small>
       </div>
     </div>`;
 }
@@ -1074,6 +1126,7 @@ function renderSectionExposure() {
       <div class="field-group">
         <label>Biggest risk concern <span style="font-weight:400;color:var(--ink-faint)">(optional)</span></label>
         <textarea class="f-textarea" placeholder="e.g. A data breach that damages customer trust…" oninput="setVal('biggest_fear',this.value)">${esc(p.biggest_fear||"")}</textarea>
+        <small>This is shown to your RM and does not affect the score.</small>
       </div>
     </div>`;
 }
@@ -1124,8 +1177,11 @@ function renderSectionAdvanced() {
       <span>${label}</span>
     </label>`;
 
+  const sdfCheck = mkCheck("sdf_likely", "DPDP Act §10 Significant Data Fiduciary designation likely");
+
+  const selectedStates = Array.isArray(p.state_footprint) ? p.state_footprint : (p.state_footprint ? [p.state_footprint] : []);
   const statePills = meta.states.map(s=>`
-    <button class="pill ${(p.state_footprint||[]).includes(s)?"active":""}" type="button" data-key="state_footprint" data-value="${esc(s)}" onclick="chooseVal('state_footprint','${esc(s)}',true)">${esc(s)}</button>`).join("");
+    <button class="pill ${selectedStates.includes(s)?"active":""}" type="button" data-key="state_footprint" data-value="${esc(s)}" onclick="chooseVal('state_footprint','${esc(s)}',false)">${esc(s)}</button>`).join("");
 
   const rbiProminent = tailoring?.key === "fintech" ? `
     <div class="branch-panel">
@@ -1148,12 +1204,10 @@ function renderSectionAdvanced() {
       <div class="branch-label">Relevant to Deeptech ↑</div>
       <div class="branch-mixed-grid">
         ${mkSelect("ai_tier","AI tier",meta.aiTiers)}
-        ${mkSlider("sdf_probability","SDF likelihood",0,1,.01)}
+        ${sdfCheck}
       </div>
     </div>` : "";
-  const dataAiSliders = tailoring?.key === "deeptech"
-    ? `${mkSlider("hardware_software_split","Hardware revenue share",0,1,.01)}`
-    : `${mkSlider("sdf_probability","SDF likelihood",0,1,.01)}${mkSlider("hardware_software_split","Hardware revenue share",0,1,.01)}`;
+  const dataAiSliders = `${mkSlider("hardware_software_split","Hardware revenue share",0,1,.01)}`;
   const dataAiSelects = tailoring?.key === "deeptech"
     ? `${mkSelect("data_localisation_status","Data localisation",["Unknown","Full_onshore","Hybrid","Offshore"])}`
     : `${mkSelect("data_localisation_status","Data localisation",["Unknown","Full_onshore","Hybrid","Offshore"])}${mkSelect("ai_tier","AI tier",meta.aiTiers)}`;
@@ -1182,19 +1236,20 @@ function renderSectionAdvanced() {
         <div class="adv-sliders">
           ${mkSlider("investor_cn_hk_pct","China / HK investor BO",0,1,.01)}
           ${mkSlider("cumulative_fundraising_inr_cr","Total fundraising (INR Cr)",0,10000,10,0)}
-          ${mkSlider("founder_concentration_index","Founder concentration index",0,1,.01)}
+          ${mkSlider("founder_equity_pct","Founder equity %",0,1,.01)}
         </div>
         <div class="adv-selects">
           ${governanceSelects}
         </div>
-        <div class="adv-checks">${mkCheck("dpiit_recognition","DPIIT recognised startup")}</div>
+        <div class="adv-checks">
+          ${mkCheck("dpiit_recognition","DPIIT recognised startup")}
+          ${mkCheck("has_independent_directors","Has independent board directors")}
+        </div>
       </div>
 
       <div class="adv-group">
         <div class="adv-group-title">Commercial sizing for pricing</div>
         <div class="adv-number-grid">
-          ${mkNumber("annual_revenue_cr","Annual revenue / ARR",0.1,0,"INR Cr")}
-          ${mkNumber("total_insurable_asset_value_cr","Total insurable asset value",0.1,0,"INR Cr")}
           ${mkNumber("gross_profit_cr","Gross profit / BI basis",0.1,0,"INR Cr")}
           ${mkNumber("claims_last_3_years","Claims last 3 years",1,0,"Count of prior insurance claims")}
         </div>
@@ -1210,7 +1265,7 @@ function renderSectionAdvanced() {
           ${mkCheck("cert_in_poc_designated","CERT-In POC designated")}
         </div>
         <div class="adv-state-wrap">
-          <div class="adv-state-label">State footprint <span style="font-weight:400;color:var(--ink-faint)">(select all that apply)</span></div>
+          <div class="adv-state-label">State footprint <span style="font-weight:400;color:var(--ink-faint)">(primary state drives geo loading)</span></div>
           <div class="pill-grid">${statePills}</div>
         </div>
       </div>
@@ -1224,6 +1279,7 @@ function renderSectionAdvanced() {
         <div class="adv-selects">
           ${dataAiSelects}
         </div>
+        ${tailoring?.key === "deeptech" ? "" : `<div class="adv-checks">${sdfCheck}</div>`}
       </div>
 
       <div class="adv-group">
@@ -1410,9 +1466,11 @@ function riskTone(level) {
 
 function operationalRiskPreview() {
   const p = state.profile;
+  const operations = API_OPERATION_MAP[p.operations] || p.operations;
+  const dataSensitivity = p.data_sensitivity === "Very High" ? "High" : p.data_sensitivity;
   let level = 1;
-  if (p.data_sensitivity === "High" || p.data_sensitivity === "Very High") level += 1;
-  if (["Hybrid", "Physical-only", "Offline / Physical", "Hardware / IoT"].includes(p.operations)) level += 1;
+  if (dataSensitivity === "High") level += 1;
+  if (["Hybrid", "Physical-only"].includes(operations)) level += 1;
   if (p.operations === "Marketplace") level += 1;
   return { tone: riskTone(level), label: level >= 3 ? "High" : level === 2 ? "Medium" : "Low" };
 }
@@ -1472,7 +1530,7 @@ async function runAnalysis() {
     const res = await fetch("/api/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(state.profile),
+      body: JSON.stringify(buildProfile()),
     });
     const ct = res.headers.get("content-type") || "";
     if (!ct.includes("json")) throw new Error("no-backend");
@@ -1926,7 +1984,7 @@ async function generatePricingEstimate() {
     const res = await fetch("/api/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(state.profile),
+      body: JSON.stringify(buildProfile()),
     });
     const result = await res.json();
     if (!res.ok || result.error) throw new Error(result.error || "Failed");
@@ -2467,13 +2525,16 @@ function renderRefineBody() {
       <div class="adv-sliders">
         ${mkSlider("investor_cn_hk_pct","China / HK investor BO",0,1,.01)}
         ${mkSlider("cumulative_fundraising_inr_cr","Total fundraising (INR Cr)",0,10000,10,0)}
-        ${mkSlider("founder_concentration_index","Founder concentration",0,1,.01)}
+        ${mkSlider("founder_equity_pct","Founder equity %",0,1,.01)}
       </div>
       <div class="adv-selects">
         ${mkSelect("holdco_domicile","Holdco domicile",meta.holdcoDomiciles)}
         ${mkSelect("rbi_registration","RBI registration",meta.rbiRegistrations,"None")}
       </div>
-      <div class="adv-checks">${mkCheck("dpiit_recognition","DPIIT recognised startup")}</div>
+      <div class="adv-checks">
+        ${mkCheck("dpiit_recognition","DPIIT recognised startup")}
+        ${mkCheck("has_independent_directors","Has independent board directors")}
+      </div>
     </div>
     <div class="adv-group">
       <div class="adv-group-title">Commercial sizing for pricing</div>
@@ -2487,13 +2548,13 @@ function renderRefineBody() {
     <div class="adv-group">
       <div class="adv-group-title">Data &amp; AI</div>
       <div class="adv-sliders">
-        ${mkSlider("sdf_probability","SDF likelihood",0,1,.01)}
         ${mkSlider("hardware_software_split","Hardware revenue share",0,1,.01)}
       </div>
       <div class="adv-selects">
         ${mkSelect("data_localisation_status","Data localisation",["Unknown","Full_onshore","Hybrid","Offshore"])}
         ${mkSelect("ai_tier","AI tier",meta.aiTiers)}
       </div>
+      <div class="adv-checks">${mkCheck("sdf_likely","DPDP Act §10 Significant Data Fiduciary designation likely")}</div>
     </div>
     <div class="adv-group" style="border-bottom:none;margin-bottom:0;padding-bottom:0;">
       <div class="adv-group-title">Market &amp; supply chain</div>
@@ -2571,7 +2632,7 @@ function bindRefine() {
         const res = await fetch("/api/analyze", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(state.profile),
+          body: JSON.stringify(buildProfile()),
         });
         const result = await res.json();
         if (!res.ok || result.error) throw new Error(result.error || "Failed");

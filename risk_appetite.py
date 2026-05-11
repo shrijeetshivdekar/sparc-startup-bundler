@@ -202,6 +202,8 @@ RISK_APPETITE = {
         "Logistics / Mobility": "good",
     },
     "key_person": {"_default": "good", "_requires_fire_first": False},
+    "group_criti_shield": {"_default": "good", "_requires_fire_first": False},
+    "group_hospishield": {"_default": "good", "_requires_fire_first": False},
     "employment_practices": {
         "_default": "moderate",
         "_requires_fire_first": False,

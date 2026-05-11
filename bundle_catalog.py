@@ -147,10 +147,10 @@ BUNDLE_CATALOG = {
         "il_product_url": "",
         "il_product_name": "Group Safeguard Insurance Policy",
         "mandatory_covers": ["employee_health", "group_pa", "employees_comp"],
-        "optional_covers": ["key_person", "employment_practices"],
+        "optional_covers": ["key_person", "employment_practices", "group_criti_shield", "group_hospishield"],
         "prerequisites": {},
         "eligible_sectors": {"SaaS / Enterprise Software", "Fintech", "Healthtech", "Edtech", "Legaltech", "HRtech", "D2C / Consumer Brands", "Logistics / Mobility", "Foodtech / Cloud Kitchen", "Agritech", "Cleantech / Climatetech", "Deeptech / AI / Robotics", "Gaming / Media / Content", "Insurtech"},
-        "eligible_stages": ["Seed", "Series A", "Series B+"],
+        "eligible_stages": ["Pre-seed", "Seed", "Series A", "Series B+"],
         "description": "Group protection umbrella covering employee health, accident, and compensation under a single group policy. Relevant for any funded startup with 5+ employees. Triggered by headcount, funding stage, and gig workforce exposure.",
         "criticality": "High",
         "covered_risks": ["key_person", "gig_labour", "liability", "regulatory_compliance"],
@@ -233,6 +233,96 @@ BUNDLE_CATALOG = {
             "product_liability": {"criticality": "Optional", "reason": "Add where physical products can injure customers or damage property."},
         },
     },
+    "entertainment_production": {
+        "name": "Entertainment Production Package",
+        "is_real_il_bundle": True,
+        "il_product_name": "ICICI Lombard Entertainment Production Package Policy",
+        "mandatory_covers": ["event_production", "public_liability"],
+        "optional_covers": ["comprehensive_general_liability", "employees_comp", "electronic_equipment", "property_fire", "burglary"],
+        "prerequisites": {},
+        "eligible_sectors": {"Gaming / Media / Content"},
+        "eligible_stages": ["Seed", "Series A", "Series B+"],
+        "description": "Production, event, equipment, and venue liability bundle for media, creator-economy, film, ad production, and event startups.",
+        "criticality": "Medium",
+        "covered_risks": ["liability", "reputation", "property", "gig_labour", "regulatory_compliance"],
+        "covers_criticality": {
+            "event_production": {"criticality": "Mandatory", "reason": "Active production operations need production-specific event, cast, equipment, and abandonment cover."},
+            "public_liability": {"criticality": "Mandatory", "reason": "Venues, events, sets, and public attendance create third-party liability."},
+            "comprehensive_general_liability": {"criticality": "Recommended", "reason": "Add for broader contractual and operational liability."},
+            "employees_comp": {"criticality": "Optional", "reason": "Add for crews, technicians, and field workers."},
+            "electronic_equipment": {"criticality": "Optional", "reason": "Add for cameras, production equipment, and rented electronics."},
+            "property_fire": {"criticality": "Optional", "reason": "Add where studios, sets, or production facilities are owned."},
+            "burglary": {"criticality": "Optional", "reason": "Add for equipment stored at studios, warehouses, or remote locations."},
+        },
+    },
+    "merchants_cover_iii": {
+        "name": "Merchants Cover III",
+        "is_real_il_bundle": True,
+        "il_product_name": "ICICI Lombard Merchants Cover III Insurance Policy",
+        "mandatory_covers": ["property_fire", "burglary", "public_liability"],
+        "optional_covers": ["money_insurance", "employees_comp", "business_interruption", "product_liability", "electronic_equipment"],
+        "prerequisites": {"business_interruption": "property_fire"},
+        "eligible_sectors": {"D2C / Consumer Brands", "Foodtech / Cloud Kitchen", "Agritech", "Logistics / Mobility"},
+        "eligible_stages": ["Pre-seed", "Seed", "Series A"],
+        "description": "Shop, merchant, and retail SME package for D2C offline stores, franchise outlets, food and beverage retailers, and physical-first businesses.",
+        "criticality": "Medium",
+        "covered_risks": ["property", "liability", "reputation", "gig_labour"],
+        "covers_criticality": {
+            "property_fire": {"criticality": "Mandatory", "reason": "Retail premises, inventory, and shop fitouts require fire and allied perils cover."},
+            "burglary": {"criticality": "Mandatory", "reason": "Physical stores with stock and cash on premises need burglary protection."},
+            "public_liability": {"criticality": "Mandatory", "reason": "Customer footfall in stores creates third-party injury/property damage exposure."},
+            "money_insurance": {"criticality": "Recommended", "reason": "Add where daily cash collections are significant."},
+            "employees_comp": {"criticality": "Recommended", "reason": "Add for shop floor staff, delivery, and back-of-house workers."},
+            "business_interruption": {"criticality": "Optional", "reason": "Protects revenue during fire or damage-related closure."},
+            "product_liability": {"criticality": "Optional", "reason": "Add for food, pharma, cosmetics, or consumer goods sold directly."},
+            "electronic_equipment": {"criticality": "Optional", "reason": "Add for POS terminals, refrigeration units, display screens, and other equipment."},
+        },
+    },
+    "bharat_laghu_udyam": {
+        "name": "Bharat Laghu Udyam Suraksha",
+        "is_real_il_bundle": True,
+        "il_product_name": "ICICI Lombard Bharat Laghu Udyam Suraksha Policy",
+        "mandatory_covers": ["property_fire"],
+        "optional_covers": ["burglary", "business_interruption", "machinery_breakdown", "employees_comp", "public_liability", "money_insurance", "electronic_equipment"],
+        "prerequisites": {"business_interruption": "property_fire"},
+        "eligible_sectors": {"D2C / Consumer Brands", "Logistics / Mobility", "Foodtech / Cloud Kitchen", "Agritech", "Cleantech / Climatetech", "Deeptech / AI / Robotics"},
+        "eligible_stages": ["Seed", "Series A"],
+        "description": "Mid-tier standardised property package for startups with insurable asset values between ₹5 Cr and ₹50 Cr — the bridge between Bharat Sookshma and MSME Suraksha Kavach.",
+        "criticality": "Medium",
+        "covered_risks": ["property", "liability", "esg_climate", "gig_labour"],
+        "covers_criticality": {
+            "property_fire": {"criticality": "Mandatory", "reason": "Standardised fire and allied perils cover for business assets in the ₹5–50 Cr range."},
+            "burglary": {"criticality": "Recommended", "reason": "Inventory, equipment, and stock concentration justify theft cover."},
+            "business_interruption": {"criticality": "Recommended", "reason": "Revenue protection after insured property damage."},
+            "machinery_breakdown": {"criticality": "Optional", "reason": "Add where production or processing equipment is critical."},
+            "employees_comp": {"criticality": "Optional", "reason": "Add for factory, warehouse, or field workers."},
+            "public_liability": {"criticality": "Optional", "reason": "Add if customers or vendors visit the premises."},
+            "money_insurance": {"criticality": "Optional", "reason": "Add where cash handling is part of operations."},
+            "electronic_equipment": {"criticality": "Optional", "reason": "Add for servers, diagnostic equipment, or automation systems."},
+        },
+    },
+    "i_select_liability": {
+        "name": "I-select Liability Insurance",
+        "is_real_il_bundle": True,
+        "il_product_name": "ICICI Lombard I-select Liability Insurance",
+        "mandatory_covers": ["professional_indemnity"],
+        "optional_covers": ["dno_liability", "cyber_liability", "crime_fidelity", "employment_practices", "comprehensive_general_liability", "public_liability"],
+        "prerequisites": {},
+        "eligible_sectors": {"SaaS / Enterprise Software", "Fintech", "Healthtech", "Legaltech", "HRtech", "Edtech", "Gaming / Media / Content"},
+        "eligible_stages": ["Seed", "Series A", "Series B+"],
+        "description": "Modular liability bundle where the startup selects the liability lines it needs — PI as the anchor, with D&O, Cyber, Crime, EPLI, and CGL available as optional add-ons under one structure.",
+        "criticality": "High",
+        "covered_risks": ["liability", "governance_fraud", "cyber_technical", "data_privacy", "ip_infringement", "reputation"],
+        "covers_criticality": {
+            "professional_indemnity": {"criticality": "Mandatory", "reason": "PI/E&O is the liability anchor for service errors, software failures, and B2B client claims."},
+            "dno_liability": {"criticality": "Recommended", "reason": "Add after institutional funding or regulated entity formation."},
+            "cyber_liability": {"criticality": "Recommended", "reason": "Add where data sensitivity is medium/high or DPDPA compliance obligations exist."},
+            "crime_fidelity": {"criticality": "Optional", "reason": "Add where employees handle funds, payment access, or privileged financial systems."},
+            "employment_practices": {"criticality": "Optional", "reason": "Add as headcount, POSH, and termination exposure grow."},
+            "comprehensive_general_liability": {"criticality": "Optional", "reason": "Add for enterprise contracts requiring broad operational liability cover."},
+            "public_liability": {"criticality": "Optional", "reason": "Add where the startup has office visitors, events, or third-party premises access."},
+        },
+    },
 }
 
 SECTOR_FIRE_THRESHOLD = {
@@ -277,6 +367,8 @@ _SECTOR_KEY = {
     "Proptech":                   "saas_b2b",
     "Spacetech":                  "deeptech",
     "Agritech / Foodtech":        "d2c",
+    "Agritech":                   "d2c",
+    "Foodtech / Cloud Kitchen":   "d2c",
     "Logistics / Mobility":       "d2c",
 }
 
@@ -502,9 +594,12 @@ def rank_bundles(sector: str, stage: str, scores: dict, inp) -> list:
                     excl = f"asset '{asset_key}' ∉ {aband}"
                 else:
                     si_cap    = meta.get("si_cap_inr")
+                    si_floor  = meta.get("si_floor_inr")
                     asset_val = getattr(inp, "asset_value_inr", 0) or 0
                     if si_cap is not None and asset_val > si_cap:
                         excl = f"asset_value_inr {asset_val} > si_cap {si_cap}"
+                    elif si_floor is not None and 0 < asset_val < si_floor:
+                        excl = f"asset_value_inr {asset_val} < si_floor {si_floor}"
 
         if excl is None and meta is not None:
             cov   = _coverage_score(profile, bundle, cfg)
