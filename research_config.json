@@ -2,19 +2,19 @@
   "version": "2026.05",
   "config_version": "2026.05",
   "risk_weights": {
-    "cyber_technical": 0.115,
-    "data_privacy": 0.12,
-    "liability": 0.06,
-    "ip_infringement": 0.06,
-    "key_person": 0.05,
-    "governance_fraud": 0.115,
-    "property": 0.06,
-    "regulatory_compliance": 0.09,
-    "esg_climate": 0.08,
-    "geopolitical": 0.05,
-    "gig_labour": 0.05,
-    "policy_velocity": 0.075,
-    "reputation": 0.075
+    "cyber_technical": 0.120,
+    "data_privacy": 0.130,
+    "liability": 0.060,
+    "ip_infringement": 0.060,
+    "key_person": 0.045,
+    "governance_fraud": 0.110,
+    "property": 0.060,
+    "regulatory_compliance": 0.100,
+    "esg_climate": 0.075,
+    "geopolitical": 0.050,
+    "gig_labour": 0.050,
+    "policy_velocity": 0.070,
+    "reputation": 0.070
   },
   "sector_multipliers": {
     "fintech": {"cyber_technical": 1.5, "data_privacy": 1.5, "regulatory_compliance": 1.5, "governance_fraud": 1.4},
@@ -42,26 +42,26 @@
   "geo_multipliers": {"MH": 1.15, "GJ": 1.1, "TN": 1.05, "KA": 1.05, "DEFAULT": 1.0},
   "graduation_map": {
     "seed": [
-      {"stage": "Seed", "bundle": "Startup Shield Pack"},
-      {"stage": "Series A", "bundle": "Corporate Cover II"},
+      {"stage": "Seed", "bundle": "Business Shield SME"},
+      {"stage": "Series A", "bundle": "Enterprise Secure"},
       {"stage": "Series B", "bundle": "Corporate Cover II"},
       {"stage": "Growth", "bundle": "Corporate Cover II"}
     ],
     "series_a": [
-      {"stage": "Seed", "bundle": "Startup Shield Pack"},
-      {"stage": "Series A", "bundle": "Startup Shield Pack"},
+      {"stage": "Seed", "bundle": "Business Shield SME"},
+      {"stage": "Series A", "bundle": "Enterprise Secure"},
       {"stage": "Series B", "bundle": "Corporate Cover II"},
       {"stage": "Growth", "bundle": "Corporate Cover II"}
     ],
     "series_b": [
-      {"stage": "Seed", "bundle": "Startup Shield Pack"},
-      {"stage": "Series A", "bundle": "Corporate Cover II"},
+      {"stage": "Seed", "bundle": "Business Shield SME"},
+      {"stage": "Series A", "bundle": "Enterprise Secure"},
       {"stage": "Series B", "bundle": "Corporate Cover II"},
       {"stage": "Growth", "bundle": "Corporate Cover II"}
     ],
     "growth": [
-      {"stage": "Seed", "bundle": "Startup Shield Pack"},
-      {"stage": "Series A", "bundle": "Corporate Cover II"},
+      {"stage": "Seed", "bundle": "Business Shield SME"},
+      {"stage": "Series A", "bundle": "Enterprise Secure"},
       {"stage": "Series B", "bundle": "Corporate Cover II"},
       {"stage": "Growth", "bundle": "Corporate Cover II"}
     ]
@@ -70,6 +70,7 @@
     "MSME_Suraksha_Kavach": {
       "name": "MSME Suraksha Kavach",
       "tam_cr": 16250,
+      "startup_addressable_tam_cr": 813,
       "base_premium": 50000,
       "adoption": 0.05,
       "margin": 0.06,
@@ -85,6 +86,7 @@
     "Corporate_Cover_II": {
       "name": "Corporate Cover II",
       "tam_cr": 880,
+      "startup_addressable_tam_cr": 352,
       "base_premium": 2200000,
       "adoption": 0.4,
       "margin": 0.13,
@@ -97,9 +99,10 @@
       "regulatory_anchors": ["Companies Act 2013", "Commercial liability wording"],
       "covered_risks": ["property", "liability", "governance_fraud", "cyber_technical", "data_privacy", "key_person"]
     },
-    "Startup_Shield_Pack": {
-      "name": "Startup Shield Pack",
+    "Business_Shield_SME": {
+      "name": "Business Shield SME",
       "tam_cr": 1760,
+      "startup_addressable_tam_cr": 440,
       "base_premium": 320000,
       "adoption": 0.22,
       "margin": 0.11,
@@ -112,9 +115,10 @@
       "regulatory_anchors": ["DPDP Act 2023", "CERT-In Directions 2022", "Companies Act 2013"],
       "covered_risks": ["cyber_technical", "data_privacy", "ip_infringement", "key_person", "governance_fraud", "reputation"]
     },
-    "Bharat_Sookshma_Udyam_Suraksha": {
+    "Bharat_Sookshma_Udyam": {
       "name": "Bharat Sookshma Udyam Suraksha",
       "tam_cr": 2560,
+      "startup_addressable_tam_cr": 128,
       "base_premium": 13500,
       "adoption": 0.05,
       "margin": 0.18,
@@ -128,80 +132,85 @@
       "regulatory_anchors": ["Bharat Sookshma Udyam Suraksha wording"],
       "covered_risks": ["property", "liability", "gig_labour"]
     },
-    "Deeptech_Innovation_Bundle": {
-      "name": "Deeptech Innovation Bundle",
+    "Industrial_All_Risk": {
+      "name": "Industrial All Risk (IAR) Policy",
       "tam_cr": 280,
+      "startup_addressable_tam_cr": 168,
       "base_premium": 800000,
       "adoption": 0.12,
-      "margin": 0.1,
+      "margin": 0.10,
       "trajectory": "up",
       "risk_mult": 1.4,
-      "eligible_sectors": ["deeptech", "climatetech", "healthtech"],
-      "eligible_stages": ["series_a", "series_b"],
-      "asset_band": ["lab_equipment", "fab_or_plant"],
-      "components": ["ENGINEERING_CAR_EAR_CPM_MBD_EEI", "PI_TECH_EO", "D_AND_O", "PRODUCT_LIABILITY", "Drone_RPAS"],
-      "regulatory_anchors": ["Drone Rules 2021 Rule 44", "Engineering Insurance wording"],
-      "covered_risks": ["property", "ip_infringement", "key_person", "cyber_technical", "liability", "regulatory_compliance"]
+      "eligible_sectors": ["deeptech", "climatetech", "healthtech", "d2c"],
+      "eligible_stages": ["seed", "series_a", "series_b"],
+      "asset_band": ["lab_equipment", "fab_or_plant", "warehouse"],
+      "components": ["PROPERTY_ALL_RISK", "BUSINESS_INTERRUPTION", "MACHINERY_BREAKDOWN", "ELECTRONIC_EQUIPMENT", "PI_TECH_EO", "D_AND_O", "Drone_RPAS"],
+      "regulatory_anchors": ["Industrial All Risk policy wording", "Property All Risk wording", "Drone Rules 2021 Rule 44"],
+      "covered_risks": ["property", "esg_climate", "liability", "ip_infringement", "key_person", "regulatory_compliance"]
     },
-    "Employee_Welfare_Bundle": {
-      "name": "Employee Welfare Bundle",
+    "Group_Safeguard": {
+      "name": "Group Safeguard Insurance Policy",
       "tam_cr": 4200,
+      "startup_addressable_tam_cr": 1260,
       "base_premium": 240000,
       "adoption": 0.32,
       "margin": 0.09,
       "trajectory": "up",
       "risk_mult": 1.0,
-      "eligible_sectors": ["d2c", "saas_b2b", "healthtech", "edtech", "climatetech", "trading"],
+      "eligible_sectors": ["any"],
       "eligible_stages": ["seed", "series_a", "series_b", "growth"],
       "asset_band": ["any"],
-      "components": ["GROUP_HEALTH", "GROUP_PA", "EMPLOYERS_COMP"],
-      "regulatory_anchors": ["Employees' Compensation Act 1923", "IRDAI Health Insurance Regulations"],
+      "components": ["GROUP_HEALTH", "GROUP_PA", "EMPLOYERS_COMP", "EMPLOYMENT_PRACTICES"],
+      "regulatory_anchors": ["Employees' Compensation Act 1923", "IRDAI Health Insurance Regulations", "Code on Social Security 2020"],
       "covered_risks": ["key_person", "gig_labour", "liability", "regulatory_compliance"]
     },
-    "Marine_Trade_Credit_Bundle": {
-      "name": "Marine Trade Credit Bundle",
-      "tam_cr": 1200,
-      "base_premium": 450000,
-      "adoption": 0.11,
-      "margin": 0.12,
-      "trajectory": "up",
-      "risk_mult": 1.2,
-      "eligible_sectors": ["d2c", "climatetech", "manufacturing", "trading", "saas_b2b"],
-      "eligible_stages": ["series_a", "series_b", "growth"],
-      "asset_band": ["warehouse", "fab_or_plant", "asset_light"],
-      "components": ["MARINE_CARGO", "TRADE_CREDIT"],
-      "regulatory_anchors": ["Marine Cargo wording", "Trade Credit Insurance wording"],
-      "covered_risks": ["geopolitical", "governance_fraud", "reputation"]
-    },
-    "Engineering_Project_Bundle": {
-      "name": "Engineering Project Bundle",
+    "Contractor_All_Risk": {
+      "name": "Contractor All Risk (CAR) Insurance Policy",
       "tam_cr": 950,
+      "startup_addressable_tam_cr": 95,
       "base_premium": 900000,
       "adoption": 0.09,
       "margin": 0.14,
       "trajectory": "up",
       "risk_mult": 1.25,
       "eligible_sectors": ["deeptech", "climatetech", "manufacturing", "d2c"],
-      "eligible_stages": ["series_a", "series_b", "growth"],
-      "asset_band": ["lab_equipment", "fab_or_plant"],
-      "components": ["ENGINEERING_CAR_EAR_CPM_MBD_EEI", "SURETY", "MARINE_CARGO"],
+      "eligible_stages": ["series_a", "series_b"],
+      "asset_band": ["lab_equipment", "fab_or_plant", "warehouse"],
+      "components": ["ENGINEERING_CAR_EAR_CPM_MBD_EEI", "PUBLIC_LIABILITY", "SURETY"],
       "regulatory_anchors": ["Engineering Insurance wording", "IRDAI Surety Insurance Guidelines"],
-      "covered_risks": ["property", "liability", "esg_climate", "ip_infringement"]
+      "covered_risks": ["property", "liability", "esg_climate", "governance_fraud", "regulatory_compliance"]
     },
-    "Climate_Parametric_Bundle": {
-      "name": "Climate Parametric Bundle",
-      "tam_cr": 700,
-      "base_premium": 180000,
-      "adoption": 0.07,
-      "margin": 0.15,
+    "Business_Edge": {
+      "name": "Business Edge Policy",
+      "tam_cr": 8500,
+      "startup_addressable_tam_cr": 680,
+      "base_premium": 85000,
+      "adoption": 0.08,
+      "margin": 0.10,
       "trajectory": "up",
-      "risk_mult": 1.1,
-      "eligible_sectors": ["climatetech", "d2c", "manufacturing", "trading"],
-      "eligible_stages": ["seed", "series_a", "series_b", "growth"],
-      "asset_band": ["warehouse", "fab_or_plant", "asset_light"],
-      "components": ["PRAKRITIK_PARAMETRIC", "BHARAT_SOOKSHMA", "PUBLIC_LIABILITY"],
-      "regulatory_anchors": ["Parametric climate product filings"],
-      "covered_risks": ["esg_climate", "property", "geopolitical", "regulatory_compliance"]
+      "risk_mult": 0.9,
+      "eligible_sectors": ["d2c", "manufacturing", "trading"],
+      "eligible_stages": ["seed", "series_a"],
+      "asset_band": ["asset_light", "warehouse"],
+      "components": ["PROPERTY_FIRE", "PUBLIC_LIABILITY", "EMPLOYERS_COMP"],
+      "regulatory_anchors": ["Business Edge / Business Prime package wording", "Public Liability Insurance Act where applicable"],
+      "covered_risks": ["property", "liability", "reputation", "gig_labour"]
+    },
+    "Enterprise_Secure": {
+      "name": "Enterprise Secure Package Policy",
+      "tam_cr": 2200,
+      "startup_addressable_tam_cr": 660,
+      "base_premium": 3500000,
+      "adoption": 0.30,
+      "margin": 0.14,
+      "trajectory": "up",
+      "risk_mult": 1.2,
+      "eligible_sectors": ["any"],
+      "eligible_stages": ["series_b", "growth"],
+      "asset_band": ["any"],
+      "components": ["CGL_I_ELITE", "CYBER", "D_AND_O", "PI_TECH_EO", "EMPLOYERS_COMP"],
+      "regulatory_anchors": ["Enterprise Secure package wording", "Commercial liability wording", "Companies Act 2013"],
+      "covered_risks": ["property", "liability", "reputation", "gig_labour", "governance_fraud", "cyber_technical"]
     }
   },
   "regulatory_triggers": [

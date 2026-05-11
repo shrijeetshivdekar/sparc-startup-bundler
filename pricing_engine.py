@@ -11,6 +11,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional
 
+from risk_appetite import get_appetite
+
 
 CRORE_INR = 10_000_000
 GST_RATE = 0.18
@@ -20,6 +22,21 @@ ENGINE_VERSION = "pricing-2026.05.r1"
 # Prevents pathological compounding (risk×stage×sector×climate×claims can
 # theoretically reach 7x; 4x is the auditable ceiling).
 MAX_COMBINED_LOADING = 4.0
+
+BAD_RISK_REASONS_SHORT = {
+    "cyber_liability": {
+        "Fintech": "High claim frequency; elevated deductible likely required.",
+        "Gaming / Media / Content": "Ransomware/extortion exposure disproportionately high.",
+    },
+    "product_liability": {
+        "SaaS / Enterprise Software": "Software failures are PI/E&O claims, not product liability.",
+        "Fintech": "Financial service failures handled through PI/E&O, not product liability.",
+    },
+    "marine_transit": {
+        "Fintech": "No physical goods; no cargo exposure.",
+        "SaaS / Enterprise Software": "Digital-only; no cargo exposure.",
+    },
+}
 
 
 COVER_ALIASES = {
@@ -50,14 +67,17 @@ COVER_ALIASES = {
     "bharat_sookshma": "property_fire",
     "property_fire": "property_fire",
     "PROPERTY_FIRE": "property_fire",
+    "BUSINESS_INTERRUPTION": "business_interruption",
     "business_interruption": "business_interruption",
     "PROPERTY_ALL_RISK": "property_all_risk",
     "property_all_risk": "property_all_risk",
     "ELECTRONIC_EQUIPMENT": "electronic_equipment",
     "electronic_equipment": "electronic_equipment",
+    "MACHINERY_BREAKDOWN": "machinery_breakdown",
     "ENGINEERING_CAR_EAR_CPM_MBD_EEI": "engineering",
     "engineering": "engineering",
     "contractors_all_risk": "engineering",
+    "CONTRACTORS_ALL_RISK": "engineering",
     "SURETY": "surety",
     "surety": "surety",
     "MARINE_CARGO": "marine_transit",
@@ -75,7 +95,28 @@ COVER_ALIASES = {
     "Drone_RPAS": "drone_insurance",
     "drone_rpas": "drone_insurance",
     "drone_insurance": "drone_insurance",
+    "employment_practices": "employment_practices",
+    "EMPLOYMENT_PRACTICES": "employment_practices",
+    "epl": "employment_practices",
+    "EPL": "employment_practices",
+    "epli": "employment_practices",
+    "EPLI": "employment_practices",
     "machinery_breakdown": "machinery_breakdown",
+    "MOTOR_FLEET": "motor_fleet",
+    "motor_fleet": "motor_fleet",
+    "commercial_motor_fleet": "motor_fleet",
+    "HEALTHCARE_PI": "healthcare_pi",
+    "healthcare_pi": "healthcare_pi",
+    "FINANCIAL_SERVICES_PI": "financial_services_pi",
+    "financial_services_pi": "financial_services_pi",
+    "PAYMENT_PROTECTION": "payment_protection",
+    "payment_protection": "payment_protection",
+    "PRODUCT_RECALL": "product_recall",
+    "TOTAL_RECALL": "product_recall",
+    "product_recall": "product_recall",
+    "EVENT_PRODUCTION": "event_production",
+    "event_production": "event_production",
+    "ENTERTAINMENT_PRODUCTION": "event_production",
 }
 
 
@@ -102,9 +143,9 @@ COVER_SPECS: Dict[str, CoverSpec] = {
         "Cyber Liability", "cyber_limit_cr", 1.75, 1.50,
         ("Cyber Technical Risk", "Data Privacy Risk", "Regulatory Compliance Risk"),
     ),
-    # rate 0.75 → effective ~0.85% of limit; market 0.5–1.5% (Liberty/IFFCO Tokio)
+    # rate 0.75 → effective ~0.85% of limit; market 0.5–1.5% (Liberty/IFFCO Tokio); floor raised to 2.00L (institutional round trigger)
     "dno_liability": CoverSpec(
-        "Directors and Officers Liability", "dno_limit_cr", 0.75, 1.20,
+        "Directors and Officers Liability", "dno_limit_cr", 0.75, 2.00,
         ("Governance & Fraud Risk", "Regulatory Compliance Risk", "Reputation Risk"),
     ),
     # rate 0.70 → effective ~0.80% of limit; market 0.6–1.2% (IRDAI PI Guidelines 2021)
@@ -127,9 +168,9 @@ COVER_SPECS: Dict[str, CoverSpec] = {
         "Product Liability", "product_liability_limit_cr", 0.52, 0.60,
         ("Liability Risk", "Reputation Risk", "Regulatory Compliance Risk"),
     ),
-    # rate 0.35 → effective ~0.40% of SI; fire premiums up ~60% in 2025 (BusinessStandard Dec 2024)
+    # rate 0.50 → effective ~0.57% of SI; IRDAI de-tariff Apr 2024 drove market rates up 60–80% (BusinessStandard Dec 2024)
     "property_fire": CoverSpec(
-        "Property Fire", "property_sum_insured_cr", 0.35, 0.35,
+        "Property Fire", "property_sum_insured_cr", 0.50, 0.45,
         ("Property Risk", "ESG & Climate Risk"),
     ),
     # rate 0.52 → effective ~0.59% of SI; ~1.5x fire rate per market convention
@@ -214,10 +255,41 @@ COVER_SPECS: Dict[str, CoverSpec] = {
         "Drone RPAS", "drone_hull_si_cr", 0.42, 0.30,
         ("Liability Risk", "Property Risk", "Regulatory Compliance Risk"),
     ),
+    "motor_fleet": CoverSpec(
+        "Commercial Motor Fleet", "fleet_count", 0.18, 0.50,
+        ("Liability Risk", "Property Risk", "Gig & Labour Risk"),
+        pricing_unit="per_vehicle",
+    ),
+    "healthcare_pi": CoverSpec(
+        "Healthcare / Medical Professional Liability", "healthcare_pi_limit_cr", 0.95, 1.25,
+        ("Liability Risk", "Regulatory Compliance Risk", "Reputation Risk"),
+    ),
+    "financial_services_pi": CoverSpec(
+        "Financial Services Professional Indemnity", "fi_pi_limit_cr", 1.05, 1.50,
+        ("Liability Risk", "Governance & Fraud Risk", "Regulatory Compliance Risk"),
+    ),
+    "payment_protection": CoverSpec(
+        "Payment / Card Protection", "payment_protection_limit_cr", 0.65, 0.80,
+        ("Cyber Technical Risk", "Governance & Fraud Risk", "Data Privacy Risk"),
+    ),
+    "product_recall": CoverSpec(
+        "Product Recall / Contamination", "recall_limit_cr", 0.85, 1.00,
+        ("Liability Risk", "Reputation Risk", "Regulatory Compliance Risk"),
+    ),
+    "event_production": CoverSpec(
+        "Entertainment Production Package", "production_budget_cr", 0.60, 0.60,
+        ("Liability Risk", "Reputation Risk", "Property Risk"),
+    ),
+    # rate 0.45 → effective ~0.51% of limit; emerging EPLI market in India (Marsh/AON EPL data 2025)
+    "employment_practices": CoverSpec(
+        "Employment Practices Liability", "pi_limit_cr", 0.45, 1.00,
+        ("Gig & Labour Risk", "Governance & Fraud Risk", "Reputation Risk"),
+    ),
 }
 
 INPUT_FIELD_LABELS = {
     "property_sum_insured_cr": ("Property sum insured", "INR Cr", "Building, fitout, stock, and other insurable property value."),
+    "total_insurable_asset_value_cr": ("Total insurable asset value", "INR Cr", "Total building, fitout, stock, equipment, and other insured property value."),
     "asset_value_inr": ("Property asset value", "INR", "Alternative to property SI if available in rupees."),
     "stock_sum_insured_cr": ("Stock sum insured", "INR Cr", "Inventory value to insure against fire/theft."),
     "equipment_sum_insured_cr": ("Equipment sum insured", "INR Cr", "Electronics, machinery, lab, server, or plant equipment value."),
@@ -235,6 +307,13 @@ INPUT_FIELD_LABELS = {
     "cash_limit_cr": ("Cash limit", "INR Cr", "Cash-in-safe/transit limit."),
     "crime_limit_cr": ("Crime / fidelity limit", "INR Cr", "Employee dishonesty/social engineering limit."),
     "drone_hull_si_cr": ("Drone hull SI", "INR Cr", "Drone hull/equipment value."),
+    "fleet_count": ("Fleet count", "vehicles", "Owned or operated commercial vehicles, delivery two-wheelers, trailers, or field-service vehicles."),
+    "healthcare_pi_limit_cr": ("Healthcare PI limit", "INR Cr", "Medical professional liability limit requested."),
+    "fi_pi_limit_cr": ("FI PI limit", "INR Cr", "Financial institution professional indemnity limit requested."),
+    "payment_protection_limit_cr": ("Payment protection limit", "INR Cr", "Card/payment protection or unauthorised transaction limit."),
+    "recall_limit_cr": ("Recall / contamination limit", "INR Cr", "Product recall, contamination, and brand rehabilitation limit."),
+    "production_budget_cr": ("Production budget", "INR Cr", "Insurable event/production budget or equipment-at-risk value."),
+    "employment_practices_limit_cr": ("EPL limit", "INR Cr", "Employment practices liability limit - wrongful termination, harassment, discrimination claims."),
     "employee_count": ("Employee count", "count", "Employees to be covered."),
     "team_size": ("Team size", "count", "Existing intake team size used for employee covers."),
     "annual_revenue_cr": ("Annual revenue", "INR Cr", "Annual revenue / ARR — scales Cyber and PI/Tech E&O premium."),
@@ -282,6 +361,13 @@ REQUIRED_INPUTS_BY_COVER = {
     "parametric": (("weather_exposed_si_cr",),),
     "money_insurance": (("cash_limit_cr",),),
     "drone_insurance": (("drone_hull_si_cr",),),
+    "motor_fleet": (("fleet_count",),),
+    "healthcare_pi": (("healthcare_pi_limit_cr",), ("claims_last_3_years",)),
+    "financial_services_pi": (("fi_pi_limit_cr",), ("annual_revenue_cr", "revenue_cr"), ("claims_last_3_years",)),
+    "payment_protection": (("payment_protection_limit_cr",), ("annual_revenue_cr", "revenue_cr"), ("claims_last_3_years",)),
+    "product_recall": (("recall_limit_cr",), ("annual_revenue_cr", "revenue_cr"), ("claims_last_3_years",)),
+    "event_production": (("production_budget_cr",), ("claims_last_3_years",)),
+    "employment_practices": (("pi_limit_cr", "employment_practices_limit_cr"), ("claims_last_3_years",)),
 }
 
 
@@ -300,6 +386,9 @@ def _positive(value: Any) -> Optional[float]:
 
 
 def _asset_value_in_cr(profile: Dict[str, Any]) -> Optional[float]:
+    explicit = _explicit_cr(profile, "total_insurable_asset_value_cr", "property_sum_insured_cr")
+    if explicit is not None:
+        return explicit
     for key in ("asset_value_inr", "total_asset_value_inr", "sum_insured_inr"):
         value = _positive(profile.get(key))
         if value is not None:
@@ -417,12 +506,26 @@ def infer_underwriting_inputs(profile: Dict[str, Any]) -> Dict[str, Any]:
     cargo_turnover = annual_revenue * (0.55 if has_trade else 0.10) * (1.0 + min(export_share, 1.0) * 0.5)
     receivables = annual_revenue * max(0.10, min(1.0, _float(profile.get("b2b_pct"), 0.5))) * 0.18
     project_value = property_si * (1.7 if _has_any(physical_assets, "Manufacturing plant / factory", "Solar / clean energy infrastructure") else 0.5)
+    fleet_count = int(_float(profile.get("fleet_count"), 0))
+    if fleet_count <= 0 and _has_any(physical_assets, "Vehicles / delivery fleet"):
+        fleet_count = max(3, int(team * max(0.1, _float(profile.get("gig_headcount_pct"), 0.2))))
+    healthcare_limit = max(1.0, annual_revenue * 0.20)
+    fi_limit = max(2.0, annual_revenue * 0.25)
+    payment_limit = max(1.0, annual_revenue * 0.12)
+    recall_limit = max(1.0, annual_revenue * 0.20)
+    production_budget = max(0.5, annual_revenue * 0.15)
+    if stage in ("Pre-seed", "Seed"):
+        gross_profit_default = max(0.25, annual_revenue * 0.25)
+    elif stage == "Series A":
+        gross_profit_default = max(0.50, annual_revenue * 0.30)
+    else:
+        gross_profit_default = max(1.00, annual_revenue * 0.35)
 
     inputs = {
         "property_sum_insured_cr": _explicit_cr(profile, "property_sum_insured_cr") or property_si,
         "stock_sum_insured_cr": _explicit_cr(profile, "stock_sum_insured_cr") or round(max(0.10, stock_default), 2),
         "equipment_sum_insured_cr": _explicit_cr(profile, "equipment_sum_insured_cr") or round(max(0.10, equipment_default), 2),
-        "gross_profit_si_cr": _explicit_cr(profile, "gross_profit_si_cr", "gross_profit_cr") or round(max(0.25, annual_revenue * 0.35), 2),
+        "gross_profit_si_cr": _explicit_cr(profile, "gross_profit_si_cr", "gross_profit_cr") or round(gross_profit_default, 2),
         "cyber_limit_cr": _explicit_cr(profile, "cyber_limit_cr") or round(cyber_base, 2),
         "dno_limit_cr": _explicit_cr(profile, "dno_limit_cr") or round(dno_base, 2),
         "pi_limit_cr": _explicit_cr(profile, "pi_limit_cr", "professional_indemnity_limit_cr") or round(pi_base, 2),
@@ -437,6 +540,13 @@ def infer_underwriting_inputs(profile: Dict[str, Any]) -> Dict[str, Any]:
         "cash_limit_cr": _explicit_cr(profile, "cash_limit_cr") or 0.10,
         "crime_limit_cr": _explicit_cr(profile, "crime_limit_cr") or round(max(0.50, annual_revenue * 0.10), 2),
         "drone_hull_si_cr": _explicit_cr(profile, "drone_hull_si_cr") or (1.00 if _has_any(physical_assets, "Drones / UAV equipment") else 0.25),
+        "fleet_count": int(_explicit_cr(profile, "fleet_count") or fleet_count or 1),
+        "healthcare_pi_limit_cr": _explicit_cr(profile, "healthcare_pi_limit_cr") or round(healthcare_limit, 2),
+        "fi_pi_limit_cr": _explicit_cr(profile, "fi_pi_limit_cr") or round(fi_limit, 2),
+        "payment_protection_limit_cr": _explicit_cr(profile, "payment_protection_limit_cr") or round(payment_limit, 2),
+        "recall_limit_cr": _explicit_cr(profile, "recall_limit_cr") or round(recall_limit, 2),
+        "production_budget_cr": _explicit_cr(profile, "production_budget_cr") or round(production_budget, 2),
+        "employment_practices_limit_cr": _explicit_cr(profile, "employment_practices_limit_cr", "epli_limit_cr") or round(max(1.0, annual_revenue * 0.15), 2),
         "_assumption_notes": notes,
     }
     return inputs
@@ -475,6 +585,11 @@ def _select_covers(
         if cover in COVER_SPECS and cover not in seen:
             normalized.append(cover)
             seen.add(cover)
+    if "business_interruption" in normalized:
+        has_property = any(c in normalized for c in ("property_fire", "property_all_risk"))
+        if not has_property and "property_fire" not in seen:
+            normalized.insert(normalized.index("business_interruption"), "property_fire")
+            seen.add("property_fire")
     return normalized
 
 
@@ -506,6 +621,16 @@ def _sector_loading(cover: str, profile: Dict[str, Any]) -> float:
         return 1.20
     if cover in ("engineering", "surety") and sector in ("Cleantech / Climatetech", "Deeptech / AI / Robotics"):
         return 1.15
+    if cover == "motor_fleet" and sector in ("Logistics / Mobility", "D2C / Consumer Brands", "Foodtech / Cloud Kitchen"):
+        return 1.15
+    if cover == "healthcare_pi" and sector == "Healthtech":
+        return 1.20
+    if cover in ("financial_services_pi", "payment_protection") and sector == "Fintech":
+        return 1.25
+    if cover == "product_recall" and sector in ("D2C / Consumer Brands", "Foodtech / Cloud Kitchen", "Healthtech"):
+        return 1.20
+    if cover == "event_production" and sector == "Gaming / Media / Content":
+        return 1.20
     return 1.00
 
 
@@ -552,7 +677,10 @@ def _revenue_loading(cover: str, profile: Dict[str, Any]) -> float:
     """Scale Cyber and PI premiums by annual revenue band.
     Sub-5Cr startups get a slight discount; 50Cr+ attract up to +20%.
     Only applies when annual_revenue_cr is explicitly provided."""
-    if cover not in ("cyber_liability", "professional_indemnity"):
+    if cover not in (
+        "cyber_liability", "professional_indemnity", "financial_services_pi",
+        "payment_protection", "healthcare_pi", "product_recall",
+    ):
         return 1.0
     revenue = _explicit_cr(profile, "annual_revenue_cr", "revenue_cr")
     if revenue is None:
@@ -606,11 +734,12 @@ def _price_cover(
         "revenue": _revenue_loading(cover_key, profile),
         "records": _records_loading(cover_key, profile),
     }
-    combined_loading = 1.0
+    raw_combined = 1.0
     for value in loadings.values():
-        combined_loading *= value
+        raw_combined *= value
     # Cap prevents pathological compounding (theoretical max without cap ≈ 7×).
-    combined_loading = min(combined_loading, MAX_COMBINED_LOADING)
+    cap_applied = raw_combined > MAX_COMBINED_LOADING
+    combined_loading = min(raw_combined, MAX_COMBINED_LOADING)
 
     if spec.pricing_unit == "per_employee":
         technical = exposure * spec.rate_lakh_per_cr * combined_loading
@@ -618,12 +747,20 @@ def _price_cover(
         # per_employee covers have no sum-insured denomination; intentionally 0 so
         # they don't inflate the aggregate SI used in underwriter referral checks.
         sum_insured_cr = 0.0
+    elif spec.pricing_unit == "per_vehicle":
+        technical = exposure * spec.rate_lakh_per_cr * combined_loading
+        exposure_label = f"{int(exposure)} vehicles"
+        sum_insured_cr = 0.0
     else:
         technical = exposure * spec.rate_lakh_per_cr * combined_loading
         exposure_label = f"INR {exposure:.2f} Cr"
         sum_insured_cr = exposure
 
-    premium_lakh = round(max(spec.min_lakh, technical), 2)
+    if cover_key == "dno_liability" and _stage(profile) in ("Series A", "Series B+"):
+        spec_min = max(spec.min_lakh, 2.50)
+    else:
+        spec_min = spec.min_lakh
+    premium_lakh = round(max(spec_min, technical), 2)
     return {
         "cover_key": cover_key,
         "cover_name": spec.label,
@@ -634,6 +771,8 @@ def _price_cover(
         "base_rate_lakh_per_cr": spec.rate_lakh_per_cr,
         "average_risk_score": round(avg_risk, 1),
         "loadings": {key: round(value, 3) for key, value in loadings.items()},
+        "raw_combined_loading": round(raw_combined, 3),
+        "loading_cap_applied": cap_applied,
         "premium_lakh": premium_lakh,
         "basis": f"{spec.label}: {exposure_label} x base rate {spec.rate_lakh_per_cr:.3f}L/unit x loadings.",
     }
@@ -654,11 +793,23 @@ def _missing_inputs(profile: Dict[str, Any], covers: List[str]) -> List[str]:
         prompts.append("Confirm annual transit turnover, top buyer concentration, and credit terms.")
     if any(c in covers for c in ("engineering", "surety")):
         prompts.append("Confirm project value, contract period, and defect liability period.")
+    if "motor_fleet" in covers:
+        prompts.append("Confirm vehicle count, vehicle classes, driver controls, and claims history.")
+    if "healthcare_pi" in covers:
+        prompts.append("Confirm clinical services, practitioner credentials, patient volume, and prior malpractice claims.")
+    if any(c in covers for c in ("financial_services_pi", "payment_protection")):
+        prompts.append("Confirm licence type, transaction volume, fraud controls, and customer compensation obligations.")
+    if "product_recall" in covers:
+        prompts.append("Confirm batch volumes, recall plan, quality controls, and prior recall/contamination events.")
+    if "event_production" in covers:
+        prompts.append("Confirm production budget, venue controls, cast/equipment schedule, and cancellation exposure.")
     return prompts
 
 
 def _input_present(profile: Dict[str, Any], aliases: Iterable[str]) -> bool:
     for alias in aliases:
+        if alias == "claims_last_3_years" and alias in profile:
+            return True
         val = profile.get(alias)
         if isinstance(val, bool):
             return True  # False is a valid explicit answer (e.g. claims_last_3_years=False)
@@ -741,6 +892,28 @@ def _referral_flags(
         flags.append("High climate zone; check flood/cyclone exposure and deductibles.")
     if profile.get("claims_last_3_years"):
         flags.append("Prior claims disclosed; validate loss runs before binding.")
+    if "motor_fleet" in covers and _float(inputs.get("fleet_count")) >= 50:
+        flags.append("Fleet count is 50+; validate driver vetting, telematics, route controls, and motor loss history.")
+    if "healthcare_pi" in covers and profile.get("healthcare_operations"):
+        flags.append("Healthcare operations disclosed; require practitioner credential and incident history before firm pricing.")
+    if any(c in covers for c in ("financial_services_pi", "payment_protection")) and profile.get("rbi_registration"):
+        flags.append("Regulated financial-services exposure; confirm licence scope, outsourcing controls, and regulator correspondence.")
+    if "product_recall" in covers and profile.get("product_recall_exposure"):
+        flags.append("Recall/contamination exposure disclosed; require QA controls, traceability, and recall plan.")
+    if "surety" in covers and profile.get("contract_bid_or_performance_bond_need"):
+        flags.append("Surety need disclosed; route to surety underwriter for financial strength and contract wording review.")
+    if "event_production" in covers and profile.get("event_or_production_operations"):
+        flags.append("Production/event exposure disclosed; validate venue, cancellation, cast, and equipment schedule.")
+    sector = profile.get("sector", "")
+    for cover in covers:
+        appetite = get_appetite(cover, sector)
+        if appetite == "bad":
+            reason = BAD_RISK_REASONS_SHORT.get(cover, {}).get(sector, "")
+            label = COVER_SPECS[cover].label if cover in COVER_SPECS else cover
+            flags.append(
+                f"{label}: adverse underwriting appetite for {sector} - refer to underwriter "
+                f"before presenting quote. {reason}"
+            )
     return flags
 
 
@@ -766,6 +939,12 @@ def price_output_stage(
         _price_cover(cover, COVER_SPECS[cover], inputs, scores, profile)
         for cover in covers
     ]
+    flags = _referral_flags(profile, scores, inputs, covers)
+    if any(item.get("loading_cap_applied") for item in priced):
+        flags.append(
+            "Combined risk loading was capped at 4.0x on one or more covers - "
+            "actual technical rate may be higher. Route to senior underwriter."
+        )
 
     subtotal = round(sum(item["premium_lakh"] for item in priced), 2)
     discount_rate = 0.0
@@ -780,7 +959,7 @@ def price_output_stage(
         "engine_version": ENGINE_VERSION,
         "quote_type": "indicative_underwriting_quote",
         "currency": "INR",
-        "method": "Base rate x sum insured/exposure x risk, stage, sector, climate, control, and claims loadings.",
+        "method": f"Base rate x sum insured/exposure x risk, stage, sector, climate, control, and claims loadings. Combined loading capped at {MAX_COMBINED_LOADING}x per cover.",
         "bundle_name": (bundle or {}).get("name"),
         "covers_priced": priced,
         "cover_count": len(priced),
@@ -796,5 +975,5 @@ def price_output_stage(
         "underwriting_inputs": {key: value for key, value in inputs.items() if not key.startswith("_")},
         "assumptions": inputs.get("_assumption_notes", []),
         "missing_inputs": _missing_inputs(profile, covers),
-        "underwriter_referral_flags": _referral_flags(profile, scores, inputs, covers),
+        "underwriter_referral_flags": flags,
     }

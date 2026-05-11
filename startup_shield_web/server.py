@@ -171,6 +171,19 @@ DEFAULT_PROFILE = {
     "ai_tier": "None",
     "hardware_software_split": 0.0,
     "b2b_pct": 0.5,
+    "annual_revenue_cr": 0.0,
+    "total_insurable_asset_value_cr": 0.0,
+    "gross_profit_cr": 0.0,
+    "fleet_count": 0,
+    "vehicle_types": [],
+    "healthcare_operations": False,
+    "payment_or_card_program": False,
+    "product_recall_exposure": False,
+    "food_or_pharma_manufacturing": False,
+    "contract_bid_or_performance_bond_need": False,
+    "project_value_cr": 0.0,
+    "event_or_production_operations": False,
+    "claims_last_3_years": False,
     "export_eu_pct": 0.0,
     "export_us_pct": 0.0,
     "export_china_pct": 0.0,
@@ -240,11 +253,20 @@ def effective_profile(raw):
         "investor_cn_hk_pct", "cumulative_fundraising_inr_cr",
         "founder_concentration_index", "gig_headcount_pct", "sdf_probability",
         "hardware_software_split", "b2b_pct", "export_eu_pct", "export_us_pct",
-        "export_china_pct", "chinese_supplier_pct_cogs",
+        "export_china_pct", "chinese_supplier_pct_cogs", "annual_revenue_cr",
+        "total_insurable_asset_value_cr", "gross_profit_cr", "project_value_cr",
+        "claims_last_3_years",
     ]:
         profile[key] = clean_float(profile.get(key), DEFAULT_PROFILE[key])
+    profile["fleet_count"] = max(0, clean_int(profile.get("fleet_count"), 0))
+    for key in [
+        "healthcare_operations", "payment_or_card_program", "product_recall_exposure",
+        "food_or_pharma_manufacturing", "contract_bid_or_performance_bond_need",
+        "event_or_production_operations",
+    ]:
+        profile[key] = bool(profile.get(key))
 
-    for key in ["customer_type", "data_handled", "regulatory", "physical_assets", "state_footprint"]:
+    for key in ["customer_type", "data_handled", "regulatory", "physical_assets", "state_footprint", "vehicle_types"]:
         profile[key] = as_list(profile.get(key))
 
     if profile["sector"] not in SECTOR_PROFILES:
@@ -254,6 +276,13 @@ def effective_profile(raw):
     if profile.get("ai_tier") in ("", None):
         profile["ai_tier"] = "Applied" if profile.get("ai_in_product") else "None"
     profile["ai_in_product"] = bool(profile.get("ai_in_product") or profile.get("ai_tier") not in ("None", None, ""))
+    operation_aliases = {
+        "Hybrid (online+offline)": "Hybrid",
+        "Offline / Physical": "Physical-only",
+        "Hardware / IoT": "Hybrid",
+        "Marketplace": "Hybrid",
+    }
+    profile["operations"] = operation_aliases.get(profile.get("operations"), profile.get("operations"))
 
     physical_assets = profile["physical_assets"]
     regulatory = profile["regulatory"]
@@ -321,6 +350,12 @@ def effective_profile(raw):
         profile["sdf_probability"] = max(profile["sdf_probability"], sdf_floor.get(item, 0.0))
     if set(data_handled) & sensitive_high and profile["data_sensitivity"] == "Low":
         profile["data_sensitivity"] = "Medium"
+    if "Health / medical records" in data_handled:
+        profile["healthcare_operations"] = profile["healthcare_operations"] or profile["sector"] == "Healthtech"
+    if "Payments / financial transactions" in data_handled:
+        profile["payment_or_card_program"] = profile["payment_or_card_program"] or profile["sector"] == "Fintech"
+    if "Physical inventory / goods" in data_handled:
+        profile["product_recall_exposure"] = profile["product_recall_exposure"] or profile["sector"] in ("D2C / Consumer Brands", "Foodtech / Cloud Kitchen")
 
     for reg in regulatory:
         if reg == "IT Act / CERT-In obligations":
@@ -335,6 +370,26 @@ def effective_profile(raw):
             profile["hardware_software_split"] = max(profile["hardware_software_split"], 0.20)
         elif reg == "SEBI BRSR / ESG reporting":
             profile["listed_customer_brsr_dependency"] = True
+        elif reg in ("CDSCO / medical devices", "NMC / telemedicine regulations"):
+            profile["healthcare_operations"] = True
+        elif reg in ("RBI / SEBI / IRDAI licensed",):
+            profile["payment_or_card_program"] = profile["payment_or_card_program"] or profile["sector"] == "Fintech"
+        elif reg == "FSSAI / food safety":
+            profile["food_or_pharma_manufacturing"] = True
+            profile["product_recall_exposure"] = True
+    if "Vehicles / delivery fleet" in physical_assets and profile["fleet_count"] == 0:
+        profile["fleet_count"] = max(1, int(profile["team_size"] * max(0.1, profile["gig_headcount_pct"] or 0.2)))
+    if "Kitchen / food processing" in physical_assets:
+        profile["food_or_pharma_manufacturing"] = True
+        profile["product_recall_exposure"] = True
+    if "Medical devices / diagnostic equipment" in physical_assets:
+        profile["healthcare_operations"] = True
+    if profile["sector"] == "Gaming / Media / Content" and profile["event_or_production_operations"]:
+        profile["hardware_software_split"] = max(profile["hardware_software_split"], 0.10)
+    if profile["total_insurable_asset_value_cr"] > 0:
+        profile["asset_value_inr"] = profile["total_insurable_asset_value_cr"] * 10_000_000
+    if profile["project_value_cr"] > 0:
+        profile["capex_project_value_cr"] = profile["project_value_cr"]
 
     return profile
 
@@ -873,7 +928,7 @@ def _legacy_score(raw):
         profile.get("customer_type", []),
         customer_base_estimate=max(0, profile.get("team_size", 0) * 2),
     )
-    custom_triggers = check_custom_triggers(scores, inp)
+    custom_triggers = check_custom_triggers(scores, inp, profile)
     overall = round(sum(scores.values()) / len(scores), 1)
     top_risks = [
         {"name": key, "score": round(value, 1)}

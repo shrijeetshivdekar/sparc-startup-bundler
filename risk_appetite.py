@@ -2,7 +2,9 @@ RISK_APPETITE = {
     "cyber_liability": {
         "_default": "moderate",
         "_requires_fire_first": False,
-        "Fintech": "bad",
+        # moderate - high claims frequency; elevated deductible (INR 10L min)
+        # and control questionnaire required before bind; not a hard decline.
+        "Fintech": "moderate",
         "Gaming / Media / Content": "bad",
         "Healthtech": "moderate",
         "SaaS / Enterprise Software": "moderate",
@@ -118,6 +120,64 @@ RISK_APPETITE = {
         "Edtech": "bad",
         "Legaltech": "bad",
     },
+    "healthcare_pi": {
+        "_default": "bad",
+        "_requires_fire_first": False,
+        "Healthtech": "good",
+        "Deeptech / AI / Robotics": "moderate",
+    },
+    "financial_services_pi": {
+        "_default": "bad",
+        "_requires_fire_first": False,
+        "Fintech": "good",
+        "Insurtech": "moderate",
+    },
+    "payment_protection": {
+        "_default": "bad",
+        "_requires_fire_first": False,
+        "Fintech": "good",
+        "Insurtech": "moderate",
+    },
+    "product_recall": {
+        "_default": "moderate",
+        "_requires_fire_first": False,
+        "D2C / Consumer Brands": "good",
+        "Foodtech / Cloud Kitchen": "good",
+        "Healthtech": "moderate",
+        "Deeptech / AI / Robotics": "moderate",
+        "SaaS / Enterprise Software": "bad",
+        "Fintech": "bad",
+    },
+    "event_production": {
+        "_default": "bad",
+        "_requires_fire_first": False,
+        "Gaming / Media / Content": "good",
+    },
+    "property_all_risk": {
+        "_default": "good",
+        "_requires_fire_first": False,
+        "SaaS / Enterprise Software": "moderate",
+        "Fintech": "moderate",
+    },
+    "machinery_breakdown": {
+        "_default": "good",
+        "_requires_fire_first": True,
+        "SaaS / Enterprise Software": "bad",
+        "Fintech": "bad",
+    },
+    "electronic_equipment": {
+        "_default": "good",
+        "_requires_fire_first": True,
+    },
+    "surety": {
+        "_default": "tbd",
+        "_requires_fire_first": False,
+        "Cleantech / Climatetech": "moderate",
+        "Deeptech / AI / Robotics": "moderate",
+        "D2C / Consumer Brands": "moderate",
+        "SaaS / Enterprise Software": "bad",
+        "Fintech": "bad",
+    },
     "drone_insurance": {
         "_default": "good",
         "_requires_fire_first": False,
@@ -148,6 +208,8 @@ RISK_APPETITE = {
         "Fintech": "moderate",
         "Healthtech": "moderate",
         "SaaS / Enterprise Software": "moderate",
+        "Logistics / Mobility": "bad",
+        "Edtech": "moderate",
     },
     "contractors_all_risk": {
         "_default": "moderate",
@@ -175,7 +237,6 @@ RISK_APPETITE = {
 
 BAD_RISK_REASONS = {
     "cyber_liability": {
-        "Fintech": "High claim frequency and adverse selection in fintech cyber; underwriters may require elevated deductibles.",
         "Gaming / Media / Content": "Ransomware and data extortion claims are disproportionately high in gaming and media platforms.",
     },
     "product_liability": {
@@ -196,6 +257,30 @@ BAD_RISK_REASONS = {
         "Edtech": "Digital-only business with no natural vehicle-fleet exposure.",
         "Legaltech": "Digital-only business with no natural vehicle-fleet exposure.",
     },
+    "healthcare_pi": {
+        "SaaS / Enterprise Software": "No patient-facing or clinical healthcare exposure.",
+        "Fintech": "Financial service errors should be handled through FI PI, not medical PI.",
+    },
+    "financial_services_pi": {
+        "SaaS / Enterprise Software": "No regulated financial institution service exposure.",
+        "D2C / Consumer Brands": "Consumer product claims should be handled through CGL/product liability.",
+    },
+    "payment_protection": {
+        "SaaS / Enterprise Software": "No card, payment-instrument, or consumer payment protection exposure.",
+        "D2C / Consumer Brands": "D2C payment processing normally sits with the payment gateway unless the startup runs a payment programme.",
+    },
+    "product_recall": {
+        "SaaS / Enterprise Software": "No physical product control or recall exposure.",
+        "Fintech": "No product batch, contamination, or consumer goods recall exposure.",
+    },
+    "event_production": {
+        "SaaS / Enterprise Software": "No active event or production operations.",
+        "Fintech": "No active event or production operations.",
+    },
+    "surety": {
+        "SaaS / Enterprise Software": "No bid bond, performance bond, EPC, or project guarantee exposure.",
+        "Fintech": "Surety is not a natural cover for regulated financial-service delivery.",
+    },
     "drone_insurance": {
         "SaaS / Enterprise Software": "No drone operations in a standard SaaS profile.",
         "Fintech": "No drone operations in a standard fintech profile.",
@@ -206,6 +291,9 @@ BAD_RISK_REASONS = {
     "contractors_all_risk": {
         "Fintech": "No construction or installation projects in fintech.",
         "SaaS / Enterprise Software": "No physical construction exposure.",
+    },
+    "employment_practices": {
+        "Logistics / Mobility": "Aggregator and gig-platform EPL claims frequency is elevated; Code on Social Security 2020 Schedule VII creates additional statutory exposure for misclassification.",
     },
 }
 

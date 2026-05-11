@@ -2713,6 +2713,26 @@ button, input, select, textarea { font: inherit; }
   margin-bottom: 5px;
 }
 
+.adv-number-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.adv-number-input {
+  height: 38px;
+  font-size: 13px;
+  padding: 0 12px;
+}
+
+.adv-help {
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--ink-faint);
+}
+
 /* Checkbox row */
 .adv-checks {
   display: flex;
@@ -2756,6 +2776,7 @@ button, input, select, textarea { font: inherit; }
 @media (max-width: 700px) {
   .adv-slider-row { grid-template-columns: 1fr 56px; }
   .adv-slider-label { display: none; }
+  .adv-number-grid { grid-template-columns: 1fr; }
   .adv-sliders .adv-slider-row::before {
     content: attr(data-label);
     grid-column: 1 / -1;

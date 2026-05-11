@@ -340,19 +340,68 @@ class BundleInputV2:
         physical = getattr(si, "operations", "Digital-only")
         is_physical = physical in ("Physical-only", "Hybrid")
         sector = getattr(si, "sector", "SaaS / Enterprise Software")
+        physical_assets = set(getattr(si, "physical_assets", []) or [])
+        data_handled = set(getattr(si, "data_handled", []) or [])
+        regulatory = set(getattr(si, "regulatory", []) or [])
+        team_size = int(getattr(si, "team_size", 0) or 0)
+
+        has_office = is_physical or "Office / coworking space" in physical_assets
+        has_warehouse = "Warehouse / fulfilment centre" in physical_assets
+        has_store = "Retail stores / kiosks" in physical_assets
+        has_lab = any(asset in physical_assets for asset in (
+            "Lab / R&D equipment", "Medical devices / diagnostic equipment", "Data centre / server room",
+        ))
+        has_factory = any(asset in physical_assets for asset in (
+            "Manufacturing plant / factory", "Kitchen / food processing", "Solar / clean energy infrastructure",
+        ))
+        fleet_count = int((extra or {}).get("fleet_count", 0) or 0)
+        if fleet_count <= 0 and "Vehicles / delivery fleet" in physical_assets:
+            gig_pct = float(getattr(si, "gig_headcount_pct", 0.0) or 0.0)
+            fleet_count = max(1, int(team_size * max(0.10, gig_pct or 0.20)))
+        project_value = float((extra or {}).get("project_value_cr", 0.0) or (extra or {}).get("capex_project_value", 0.0) or 0.0)
+        asset_value = float((extra or {}).get("total_insurable_asset_value_cr", 0.0) or (extra or {}).get("owned_assets_value", 0.0) or 0.0)
+        annual_revenue = float((extra or {}).get("annual_revenue_cr", 0.0) or (extra or {}).get("annual_revenue", 0.0) or 0.0)
 
         inst = cls(
             industry=sector,
             sub_industry=getattr(si, "sub_sector", None),
             funding_stage=getattr(si, "funding_stage", "Seed"),
             development_stage=getattr(si, "funding_stage", "Seed"),
-            headcount_total=getattr(si, "team_size", 0),
-            office_presence=is_physical,
+            annual_revenue=annual_revenue,
+            headcount_total=team_size,
+            headcount_field=max(0, int(team_size * float(getattr(si, "gig_headcount_pct", 0.0) or 0.0))),
+            office_presence=has_office,
+            warehouse_presence=has_warehouse,
+            store_presence=has_store,
+            lab_presence=has_lab,
+            factory_presence=has_factory,
+            owned_assets_value=asset_value,
+            stock_value=asset_value * (0.35 if has_warehouse or has_store else 0.12),
+            machinery_value=asset_value * (0.45 if has_factory else 0.0),
+            electronics_value=asset_value * (0.25 if has_lab else 0.0),
+            domestic_shipments=bool(physical_assets & {"Warehouse / fulfilment centre", "Vehicles / delivery fleet"}),
+            export_shipments=bool(getattr(si, "export_eu_pct", 0.0) or getattr(si, "export_us_pct", 0.0) or getattr(si, "export_china_pct", 0.0)),
+            owned_vehicle_count=fleet_count,
+            two_wheeler_count=fleet_count if sector in ("Logistics / Mobility", "Foodtech / Cloud Kitchen") else 0,
+            project_under_construction=project_value > 0,
+            capex_project_value=project_value,
             regulatory_intensity=_infer_reg_intensity(sector),
             handles_personal_data=getattr(si, "data_sensitivity", "Low") in ("Medium", "High"),
-            handles_financial_data=sector in ("Fintech",),
-            handles_medical_data=sector in ("Healthtech",),
+            handles_financial_data=sector in ("Fintech",) or "Payments / financial transactions" in data_handled,
+            handles_medical_data=sector in ("Healthtech",) or "Health / medical records" in data_handled,
             uptime_dependency=getattr(si, "data_sensitivity", "Low") == "High",
+            payment_or_card_program=bool((extra or {}).get("payment_or_card_program") or sector == "Fintech" and (
+                getattr(si, "rbi_registration", None) or "RBI / SEBI / IRDAI licensed" in regulatory or "Payments / financial transactions" in data_handled
+            )),
+            healthcare_operations=bool((extra or {}).get("healthcare_operations") or sector == "Healthtech" and (
+                "Health / medical records" in data_handled or "Medical devices / diagnostic equipment" in physical_assets
+            )),
+            food_or_pharma_manufacturing=bool((extra or {}).get("food_or_pharma_manufacturing") or (
+                "FSSAI / food safety" in regulatory or "Kitchen / food processing" in physical_assets
+            )),
+            event_or_production_operations=bool((extra or {}).get("event_or_production_operations")),
+            drone_operations="Drones / UAV equipment" in physical_assets or "DGCA / drone operations" in regulatory,
+            contract_bid_or_performance_bond_need=bool((extra or {}).get("contract_bid_or_performance_bond_need")),
             risk_scores=risk_scores or {},
         )
         if extra:

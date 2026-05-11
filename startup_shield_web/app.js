@@ -74,6 +74,11 @@ const SECTION_FIELDS = {
     "ai_tier", "hardware_software_split", "b2b_pct", "export_eu_pct",
     "export_us_pct", "export_china_pct", "chinese_supplier_pct_cogs",
     "listed_customer_brsr_dependency", "facility_climate_risk_zone",
+    "annual_revenue_cr", "total_insurable_asset_value_cr", "gross_profit_cr",
+    "fleet_count", "healthcare_operations", "payment_or_card_program",
+    "product_recall_exposure", "food_or_pharma_manufacturing",
+    "contract_bid_or_performance_bond_need", "project_value_cr",
+    "event_or_production_operations", "claims_last_3_years",
   ],
 };
 
@@ -176,6 +181,30 @@ function afterProfileChange({ refreshAdaptive = false } = {}) {
   showSavedMicroLabel();
 }
 
+const COVER_ALIASES = {
+  "CYBER": "cyber_liability", "D_AND_O": "dno_liability", "PI_TECH_EO": "professional_indemnity",
+  "CGL_I_ELITE": "comprehensive_general_liability", "PUBLIC_LIABILITY": "public_liability",
+  "PRODUCT_LIABILITY": "product_liability", "EMPLOYERS_COMP": "employees_comp",
+  "GROUP_HEALTH": "employee_health", "GROUP_PA": "group_pa",
+  "BHARAT_SOOKSHMA": "property_fire", "PROPERTY_FIRE": "property_fire",
+  "PROPERTY_ALL_RISK": "property_all_risk", "ELECTRONIC_EQUIPMENT": "electronic_equipment",
+  "BUSINESS_INTERRUPTION": "business_interruption", "MACHINERY_BREAKDOWN": "machinery_breakdown",
+  "MOTOR_FLEET": "motor_fleet", "HEALTHCARE_PI": "healthcare_pi",
+  "FINANCIAL_SERVICES_PI": "financial_services_pi", "PAYMENT_PROTECTION": "payment_protection",
+  "PRODUCT_RECALL": "product_recall", "TOTAL_RECALL": "product_recall",
+  "EVENT_PRODUCTION": "event_production", "ENTERTAINMENT_PRODUCTION": "event_production",
+  "ENGINEERING_CAR_EAR_CPM_MBD_EEI": "engineering", "SURETY": "surety",
+  "MARINE_CARGO": "marine_transit", "TRADE_CREDIT": "trade_credit",
+  "PRAKRITIK_PARAMETRIC": "parametric", "CRIME_FIDELITY": "crime_fidelity",
+  "Drone_RPAS": "drone_insurance",
+  "EMPLOYMENT_PRACTICES": "employment_practices",
+  "employment_practices": "employment_practices",
+  "EPL": "employment_practices",
+  "epl": "employment_practices",
+  "EPLI": "employment_practices",
+  "epli": "employment_practices",
+};
+
 const PRODUCT_BLURBS = {
   "CYBER":                            "Covers data breach response, ransomware recovery, and regulatory penalties — directly required by CERT-In Directions 2022 and the DPDP Act.",
   "D_AND_O":                          "Protects founders and directors personally if investors, regulators, or employees file suit over decisions made on the company's behalf.",
@@ -186,7 +215,7 @@ const PRODUCT_BLURBS = {
   "EMPLOYERS_COMP":                   "Statutory payout if an employee is injured or dies at work — required under the Employees' Compensation Act 1923.",
   "PRODUCT_LIABILITY":                "Covers legal defence and settlements if your physical product causes injury or property damage to a customer or third party.",
   "PUBLIC_LIABILITY":                 "Covers third-party bodily injury or property damage claims arising from your premises, events, or day-to-day operations.",
-  "BHARAT_SOOKSHMA":                  "Government-backed property bundle protecting your office, equipment, and stock against fire, flood, and theft — up to ₹5 Cr sum insured.",
+  "BHARAT_SOOKSHMA":                  "IRDAI-standardised product for micro enterprises. Covers building, plant, machinery, furniture, raw materials, and stock at one business location up to INR 5 Cr sum insured.",
   "MARINE_CARGO":                     "Covers goods in transit against loss or damage while your products move between warehouses, ports, or last-mile customers.",
   "TRADE_CREDIT":                     "Pays you when a B2B buyer defaults on an invoice — essential for startups extending credit terms to distributors or enterprise clients.",
   "ENGINEERING_CAR_EAR_CPM_MBD_EEI": "Covers physical damage to machinery, equipment under erection, and electronics — essential for hardware, robotics, and manufacturing startups.",
@@ -194,7 +223,34 @@ const PRODUCT_BLURBS = {
   "PRAKRITIK_PARAMETRIC":             "Pays out automatically when a climate trigger — flood index, wind speed — is breached. No claims investigation; instant liquidity for climate-exposed ops.",
   "Drone_RPAS":                       "DGCA-mandated insurance for drone operations, covering hull damage and third-party liability arising from aerial activities under Drone Rules 2021.",
   "CGL_I_ELITE":                      "Comprehensive general liability for bodily injury, property damage, and personal injury claims from any third party — the corporate liability cornerstone.",
+  "EMPLOYMENT_PRACTICES":             "Covers legal defence and settlements if an employee sues the company for wrongful termination, discrimination, harassment, or POSH Act violations. Mandatory in any startup approaching 50+ headcount with active hiring and termination activity.",
+  "employment_practices":             "Covers legal defence and settlements if an employee sues the company for wrongful termination, discrimination, harassment, or POSH Act violations. Mandatory in any startup approaching 50+ headcount with active hiring and termination activity.",
+  "EPL":                              "Covers legal defence and settlements if an employee sues the company for wrongful termination, discrimination, harassment, or POSH Act violations. Mandatory in any startup approaching 50+ headcount with active hiring and termination activity.",
 };
+Object.assign(PRODUCT_BLURBS, {
+  "BUSINESS_INTERRUPTION": "Covers lost gross profit and continuing expenses after insured property damage disrupts operations.",
+  "PROPERTY_ALL_RISK": "Broader property cover for labs, plants, warehouses, and infrastructure where named-peril fire cover is too narrow.",
+  "MACHINERY_BREAKDOWN": "Covers sudden mechanical or electrical breakdown of production, lab, plant, and process machinery.",
+  "MOTOR_FLEET": "Commercial motor package protection for owned or operated delivery vehicles, goods carriers, trailers, and field-service fleets.",
+  "HEALTHCARE_PI": "Medical professional liability for clinical negligence, patient injury, diagnostic error, and healthcare service exposure.",
+  "FINANCIAL_SERVICES_PI": "Financial institution professional indemnity for lending, payments, wealthtech, insurtech, and regulated advisory exposure.",
+  "PAYMENT_PROTECTION": "Covers payment/card programme losses, unauthorised transaction exposure, and customer compensation obligations.",
+  "PRODUCT_RECALL": "Pays recall, contamination, withdrawal, replacement, and brand rehabilitation costs for controlled product batches.",
+  "EVENT_PRODUCTION": "Production and event package cover for venue, equipment, liability, interruption, and cancellation-sensitive operations.",
+});
+
+const OFFICIAL_IL_BUNDLE_NAMES = new Set([
+  "Business Shield SME",
+  "Corporate Cover II",
+  "MSME Suraksha Kavach",
+  "Bharat Sookshma Udyam Suraksha",
+  "Industrial All Risk (IAR) Policy",
+  "Group Safeguard Insurance Policy",
+  "Contractor All Risk (CAR) Insurance Policy",
+  "Business Edge Policy",
+  "Enterprise Secure Package Policy",
+]);
+
 const formatVal = (v) => {
   if (Array.isArray(v)) return v.length ? v.join(", ") : "None";
   if (v === null || v === undefined || v === "") return "None";
@@ -262,6 +318,19 @@ function buildStubMeta() {
       chinese_supplier_pct_cogs: 0,
       listed_customer_brsr_dependency: false,
       facility_climate_risk_zone: "Low",
+      annual_revenue_cr: 0,
+      total_insurable_asset_value_cr: 0,
+      gross_profit_cr: 0,
+      fleet_count: 0,
+      vehicle_types: [],
+      healthcare_operations: false,
+      payment_or_card_program: false,
+      product_recall_exposure: false,
+      food_or_pharma_manufacturing: false,
+      contract_bid_or_performance_bond_need: false,
+      project_value_cr: 0,
+      event_or_production_operations: false,
+      claims_last_3_years: false,
     },
     sectors: [
       "Fintech","Healthtech","SaaS / Enterprise Software","Deeptech / AI / Robotics",
@@ -271,25 +340,32 @@ function buildStubMeta() {
     ].map(n=>({name:n})),
     subSectorOptions: {},
     fundingStages: ["Pre-seed","Seed","Series A","Series B+"],
-    operations: ["Digital-only","Hybrid (online+offline)","Offline / Physical","Hardware / IoT","Marketplace"],
+    operations: ["Digital-only","Physical-only","Hybrid"],
     dataSensitivity: ["Low","Medium","High","Very High"],
     customerTypeOptions: ["B2B Enterprise","B2B SMB","B2C Consumers","Government / PSU","D2C"],
     dataHandledOptions: [
       "Employee / HR data (payroll, biometrics)",
       "Customer behavioural / usage data",
-      "Financial / payment data",
+      "Payments / financial transactions",
       "Health / medical records",
       "Children's data",
       "Biometric data",
+      "Personal identity data (KYC / Aadhaar)",
+      "Physical inventory / goods",
       "None / minimal",
     ],
     regulatoryOptions: [
-      "DPDP Act obligations","RBI / NBFC licensing","SEBI regulations","FSSAI licensing",
-      "IRDAI regulations","CERT-In compliance","Telecom / DoT licensing","None known",
+      "DPDP Act obligations","RBI / SEBI / IRDAI licensed","FSSAI / food safety",
+      "CDSCO / medical devices","DGCA / drone operations","IT Act / CERT-In obligations",
+      "Labour Codes / gig worker regulations","MV Act / transport regulations",
+      "NMC / telemedicine regulations","None / minimal",
     ],
     physicalAssetOptions: [
-      "Office / coworking space","Owned warehouse / factory","Lab / R&D equipment",
-      "Fleet / vehicles","Retail outlets","None",
+      "Office / coworking space","Warehouse / fulfilment centre","Manufacturing plant / factory",
+      "Lab / R&D equipment","Medical devices / diagnostic equipment","Vehicles / delivery fleet",
+      "Drones / UAV equipment","Kitchen / food processing","Cold chain / refrigeration",
+      "Solar / clean energy infrastructure","Retail stores / kiosks","Data centre / server room",
+      "None - fully cloud",
     ],
     states: ["Maharashtra","Karnataka","Delhi NCR","Tamil Nadu","Telangana","Gujarat","Rajasthan","Others"],
     holdcoDomiciles: ["India","Singapore","USA (Delaware)","Cayman Islands","Mauritius","UK","UAE","Netherlands"],
@@ -1019,6 +1095,17 @@ function renderSectionAdvanced() {
       </div>`;
   };
 
+  const mkNumber = (key, label, step=1, min=0, help="") => {
+    const val = p[key] ?? "";
+    return `
+      <div class="adv-number-item">
+        <label class="adv-select-label">${label}</label>
+        <input class="f-input adv-number-input" type="number" min="${min}" step="${step}" value="${esc(val)}"
+          oninput="setVal('${key}',Number(this.value||0))" />
+        ${help ? `<div class="adv-help">${esc(help)}</div>` : ""}
+      </div>`;
+  };
+
   const mkSelect = (key, label, opts, nullLabel="") => {
     const cur = p[key];
     return `
@@ -1104,6 +1191,16 @@ function renderSectionAdvanced() {
       </div>
 
       <div class="adv-group">
+        <div class="adv-group-title">Commercial sizing for pricing</div>
+        <div class="adv-number-grid">
+          ${mkNumber("annual_revenue_cr","Annual revenue / ARR",0.1,0,"INR Cr")}
+          ${mkNumber("total_insurable_asset_value_cr","Total insurable asset value",0.1,0,"INR Cr")}
+          ${mkNumber("gross_profit_cr","Gross profit / BI basis",0.1,0,"INR Cr")}
+          ${mkNumber("claims_last_3_years","Claims last 3 years",1,0,"Count of prior insurance claims")}
+        </div>
+      </div>
+
+      <div class="adv-group">
         <div class="adv-group-title">Workforce &amp; gig risk</div>
         <div class="adv-sliders">
           ${gigWorkforce}
@@ -1142,6 +1239,18 @@ function renderSectionAdvanced() {
         <div class="adv-group-title">Physical &amp; environmental</div>
         <div class="adv-selects" style="max-width:360px;">
           ${mkSelect("facility_climate_risk_zone","Facility climate risk zone",meta.climateZones)}
+        </div>
+        <div class="adv-number-grid">
+          ${mkNumber("fleet_count","Owned/operated fleet count",1,0,"Vehicles")}
+          ${mkNumber("project_value_cr","Project / contract value",0.1,0,"INR Cr")}
+        </div>
+        <div class="adv-checks">
+          ${mkCheck("healthcare_operations","Healthcare/clinical operations")}
+          ${mkCheck("payment_or_card_program","Payment/card programme")}
+          ${mkCheck("product_recall_exposure","Product recall exposure")}
+          ${mkCheck("food_or_pharma_manufacturing","Food/pharma manufacturing")}
+          ${mkCheck("contract_bid_or_performance_bond_need","Bid/performance bond need")}
+          ${mkCheck("event_or_production_operations","Event/production operations")}
         </div>
       </div>
     </div>`;
@@ -1447,7 +1556,7 @@ function renderResults(result) {
         ${renderKPI("Top risk", (result.top_risks||[])[0]?.name?.replace(" Risk","") || "—")}
         ${renderKPI("Critical covers", (result.recommendations||[]).filter(r=>r.priority==="Critical").length + " products")}
         ${renderKPI("Bundle quote", result.bundle_only_pricing_quote?.gross_premium_lakh ? `INR ${result.bundle_only_pricing_quote.gross_premium_lakh}L` : "Input needed")}
-        ${renderKPI("Premium range", result.premium_summary ? `₹${result.premium_summary.min_lakh}–${result.premium_summary.max_lakh}L` : "—")}
+        ${renderKPI("Premium range", result.premium_summary ? `INR ${result.premium_summary.min_lakh}-${result.premium_summary.max_lakh}L` : "N/A")}
         ${renderKPI("Risk clusters", Object.keys(result.clusters||{}).length + " analysed")}
       </div>
 
@@ -1456,7 +1565,7 @@ function renderResults(result) {
       ${result.premium_summary ? `
       <div class="premium-card">
         <div class="premium-card-label">Total premium potential</div>
-        <div class="premium-card-value">₹${result.premium_summary.min_lakh} – ${result.premium_summary.max_lakh} lakhs</div>
+        <div class="premium-card-value">INR ${result.premium_summary.min_lakh} - ${result.premium_summary.max_lakh} lakhs</div>
         <div class="premium-card-note">Across ${result.premium_summary.count} products · ${esc(result.premium_footnote||"Indicative estimates only.")}</div>
       </div>` : ""}
 
@@ -1482,11 +1591,12 @@ function renderResults(result) {
         </div>
         <div class="products-list">
           ${(() => {
+            const normalise = k => COVER_ALIASES[k] || k;
             const bundleKeys = new Set([
               ...(result.bundle_match?.mandatory_covers || []),
               ...(result.bundle_match?.optional_covers || []),
-            ]);
-            const additionalRecs = (result.recommendations || []).filter(r => !bundleKeys.has(r.key));
+            ].map(normalise));
+            const additionalRecs = (result.recommendations || []).filter(r => !bundleKeys.has(normalise(r.key)));
             if (!additionalRecs.length) {
               return `<div class="r-card">${emptyState("✓", "All recommended products are in your bundle", "The engine has no additional products to recommend outside the selected bundle.")}</div>`;
             }
@@ -1842,7 +1952,7 @@ function renderActionBanner(recs) {
       ${critical.map(r => `
         <div class="action-item-row">
           <span class="action-item-name">${esc(r.name||r.key)}</span>
-          ${r.premium ? `<span class="action-price-tag">₹${r.premium.min_lakh.toFixed(1)}–${r.premium.max_lakh.toFixed(1)}L</span>` : ""}
+          ${r.premium ? `<span class="action-price-tag">INR ${r.premium.min_lakh.toFixed(1)}-${r.premium.max_lakh.toFixed(1)}L</span>` : ""}
           <span class="action-why">${esc(r.nudge||"")}</span>
         </div>`).join("")}
     </div>`;
@@ -1920,7 +2030,7 @@ function renderProductCards(recs, mapping) {
         <div class="product-card-nudge">${esc(p.nudge||"")}</div>
         ${p.premium ? `
           <div class="product-premium">
-            <div class="product-premium-amount">₹${p.premium.min_lakh.toFixed(1)} – ${p.premium.max_lakh.toFixed(1)}L</div>
+            <div class="product-premium-amount">INR ${p.premium.min_lakh.toFixed(1)} - ${p.premium.max_lakh.toFixed(1)}L</div>
             <div class="product-premium-basis">${esc(p.premium.basis)}</div>
           </div>` : ""}
       </div>`;
@@ -1951,6 +2061,10 @@ function renderBundleHero(bundle, recs) {
   const optional  = bundle.optional_covers  || [];
   const recKeys   = new Set((recs||[]).map(r => r.key));
   const eyebrow   = bundle.nearest_fallback ? "Closest package fit" : "Recommended package";
+  const isOfficial = bundle.is_real_il_bundle === true || OFFICIAL_IL_BUNDLE_NAMES.has(bundle.name);
+  const officialBadgeStyle = isOfficial
+    ? "background:#059669;color:white;border-radius:999px;padding:3px 12px;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;"
+    : "background:#D97706;color:white;border-radius:999px;padding:3px 12px;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;";
 
   const coverItems = [
     ...mandatory.map(c => ({ key: c, type: "mandatory" })),
@@ -1971,6 +2085,7 @@ function renderBundleHero(bundle, recs) {
             ${bundle.fit_pct || 0}% profile fit
           </div>
           <span style="background:rgba(173,30,35,.7);color:white;border-radius:999px;padding:4px 14px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;">${esc(bundle.criticality || "High")}</span>
+          <span class="bundle-badge ${isOfficial ? "real" : "curated"}" style="${officialBadgeStyle}">${isOfficial ? "Official IL Product" : "Curated Cover Set"}</span>
         </div>
       </div>
 
@@ -2139,7 +2254,7 @@ function renderProductRows(recs, mapping) {
         </div>
         <div class="product-row-nudge">${esc(p.nudge || "")}</div>
         <div class="product-row-right">
-          ${p.premium ? `<div class="product-row-premium">₹${p.premium.min_lakh.toFixed(1)}–${p.premium.max_lakh.toFixed(1)}L</div>
+          ${p.premium ? `<div class="product-row-premium">INR ${p.premium.min_lakh.toFixed(1)}-${p.premium.max_lakh.toFixed(1)}L</div>
           <div style="font-size:11px;color:var(--ink-faint);text-align:right;">${esc(p.premium.basis)}</div>` : ""}
           <button class="product-row-expand" onclick="toggleProductRow(${i})" title="Expand">›</button>
         </div>
@@ -2319,6 +2434,15 @@ function renderRefineBody() {
       </div>`;
   };
 
+  const mkNumber = (key, label, step=1, min=0) => {
+    const val = p[key] ?? "";
+    return `
+      <div class="adv-number-item">
+        <label class="adv-select-label">${label}</label>
+        <input class="f-input adv-number-input" type="number" min="${min}" step="${step}" value="${esc(val)}" data-rkey="${key}" />
+      </div>`;
+  };
+
   const mkSelect = (key, label, opts, nullLabel="") => {
     const cur = p[key];
     return `
@@ -2352,6 +2476,15 @@ function renderRefineBody() {
       <div class="adv-checks">${mkCheck("dpiit_recognition","DPIIT recognised startup")}</div>
     </div>
     <div class="adv-group">
+      <div class="adv-group-title">Commercial sizing for pricing</div>
+      <div class="adv-number-grid">
+        ${mkNumber("annual_revenue_cr","Annual revenue / ARR",0.1)}
+        ${mkNumber("total_insurable_asset_value_cr","Total insurable asset value",0.1)}
+        ${mkNumber("gross_profit_cr","Gross profit / BI basis",0.1)}
+        ${mkNumber("claims_last_3_years","Claims last 3 years",1)}
+      </div>
+    </div>
+    <div class="adv-group">
       <div class="adv-group-title">Data &amp; AI</div>
       <div class="adv-sliders">
         ${mkSlider("sdf_probability","SDF likelihood",0,1,.01)}
@@ -2373,6 +2506,21 @@ function renderRefineBody() {
       </div>
       <div class="adv-checks">${mkCheck("listed_customer_brsr_dependency","Listed customers require BRSR")}</div>
     </div>
+    <div class="adv-group" style="border-bottom:none;margin-bottom:0;padding-bottom:0;">
+      <div class="adv-group-title">Specialty exposure triggers</div>
+      <div class="adv-number-grid">
+        ${mkNumber("fleet_count","Owned/operated fleet count",1)}
+        ${mkNumber("project_value_cr","Project / contract value",0.1)}
+      </div>
+      <div class="adv-checks">
+        ${mkCheck("healthcare_operations","Healthcare/clinical operations")}
+        ${mkCheck("payment_or_card_program","Payment/card programme")}
+        ${mkCheck("product_recall_exposure","Product recall exposure")}
+        ${mkCheck("food_or_pharma_manufacturing","Food/pharma manufacturing")}
+        ${mkCheck("contract_bid_or_performance_bond_need","Bid/performance bond need")}
+        ${mkCheck("event_or_production_operations","Event/production operations")}
+      </div>
+    </div>
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:center;">
       <button class="btn btn-primary" id="refine-run-btn" type="button">Recalculate scores</button>
       <span id="refine-status" style="font-size:12px;color:var(--ink-muted);"></span>
@@ -2388,6 +2536,12 @@ function bindRefine() {
   body.querySelectorAll("input[type='range'][data-rkey]").forEach(el => {
     el.addEventListener("input", () => {
       state.profile[el.dataset.rkey] = Number(el.value);
+    });
+  });
+
+  body.querySelectorAll("input[type='number'][data-rkey]").forEach(el => {
+    el.addEventListener("input", () => {
+      state.profile[el.dataset.rkey] = Number(el.value || 0);
     });
   });
 
@@ -2533,3 +2687,4 @@ function drawRadar(canvasId, data, opts = {}) {
 /* ─── KICK OFF ───────────────────────────────────────────────── */
 window.renderForm = renderForm;
 init();
+

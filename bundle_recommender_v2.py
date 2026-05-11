@@ -145,10 +145,12 @@ _SECTOR_KEY = {
     "D2C / Consumer Brands": "d2c",
     "Foodtech / Cloud Kitchen": "d2c",
     "Logistics / Mobility": "d2c",
+    "Agritech / Foodtech": "trading",
     "SaaS / Enterprise Software": "saas_b2b",
     "Legaltech": "saas_b2b",
     "HRtech": "saas_b2b",
     "Gaming / Media / Content": "saas_b2b",
+    "Insurtech": "fintech",
     "Agritech": "trading",
 }
 
@@ -179,6 +181,147 @@ def _asset_band(profile: Dict[str, Any]) -> str:
     if "Warehouse / fulfilment centre" in assets or "Retail stores / kiosks" in assets:
         return "warehouse"
     return "asset_light"
+
+
+def _bool(profile: Dict[str, Any], key: str) -> bool:
+    value = profile.get(key)
+    if isinstance(value, str):
+        return value.strip().lower() in ("yes", "true", "1", "y")
+    return bool(value)
+
+
+def _num(profile: Dict[str, Any], key: str, default: float = 0.0) -> float:
+    try:
+        value = profile.get(key, default)
+        if value in (None, ""):
+            return default
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _items(profile: Dict[str, Any], key: str) -> set:
+    value = profile.get(key) or []
+    if isinstance(value, str):
+        return {value}
+    return set(value)
+
+
+def _has_any(profile: Dict[str, Any], key: str, *needles: str) -> bool:
+    values = _items(profile, key)
+    return any(needle in values for needle in needles)
+
+
+def _asset_value_cr(profile: Dict[str, Any]) -> float:
+    explicit = _num(profile, "total_insurable_asset_value_cr")
+    if explicit > 0:
+        return explicit
+    for key in ("property_sum_insured_cr", "sum_insured_cr"):
+        value = _num(profile, key)
+        if value > 0:
+            return value
+    for key in ("asset_value_inr", "total_asset_value_inr", "sum_insured_inr"):
+        value = _num(profile, key)
+        if value > 0:
+            return value / 10_000_000.0
+    return 0.0
+
+
+def _any_physical_presence(profile: Dict[str, Any]) -> bool:
+    operations = str(profile.get("operations") or "")
+    assets = _items(profile, "physical_assets")
+    if operations and operations not in ("Digital-only", "Digital only"):
+        return True
+    return bool(assets and assets != {"None - fully cloud"} and "None" not in assets)
+
+
+def _funded(profile: Dict[str, Any]) -> bool:
+    return profile.get("has_investors") == "Yes" or _profile_stage(profile) in ("series_a", "series_b", "growth")
+
+
+def _bundle_slug(name: str) -> str:
+    return name.lower().replace("&", "and").replace("/", " ").replace("-", " ").replace("  ", " ")
+
+
+def _bundle_hard_gate(bm: BundleMeta, profile: Dict[str, Any]) -> bool:
+    """Bundle-level underwriter gates for curated bundles promoted from product families."""
+    name = _bundle_slug(bm.name)
+    sector = str(profile.get("sector") or "")
+    assets_cr = _asset_value_cr(profile)
+    assets = _items(profile, "physical_assets")
+    regulatory = _items(profile, "regulatory")
+    data = _items(profile, "data_handled")
+    fleet_count = _num(profile, "fleet_count")
+    project_value = _num(profile, "project_value_cr") or _num(profile, "capex_project_value_cr")
+    hardware_split = _num(profile, "hardware_software_split")
+
+    if "business package" in name or "enterprise secure" in name:
+        industrial_scale = (
+            assets_cr >= 50
+            or ("Manufacturing plant / factory" in assets and (assets_cr >= 25 or hardware_split >= 0.55))
+            or ("Solar / clean energy infrastructure" in assets and (assets_cr >= 20 or project_value >= 25))
+        )
+        specialist_event = sector == "Gaming / Media / Content" and _bool(profile, "event_or_production_operations")
+        return not industrial_scale and not specialist_event and (_any_physical_presence(profile) or _funded(profile))
+
+    if "industrial all risk" in name or "large property" in name:
+        return (
+            assets_cr >= 50
+            or ("Manufacturing plant / factory" in assets and (assets_cr >= 25 or hardware_split >= 0.55))
+            or ("Solar / clean energy infrastructure" in assets and (assets_cr >= 20 or project_value >= 25))
+            or ("Data centre / server room" in assets and assets_cr >= 20)
+        )
+
+    if "mobility" in name or "delivery fleet" in name:
+        return (
+            fleet_count > 0
+            or "Vehicles / delivery fleet" in assets
+            or "MV Act / transport regulations" in regulatory
+        )
+
+    if "healthcare" in name or "medical liability" in name:
+        return (
+            sector == "Healthtech"
+            and (
+                _bool(profile, "healthcare_operations")
+                or "Health / medical records" in data
+                or "Medical devices / diagnostic equipment" in assets
+                or bool(regulatory & {"CDSCO / medical devices", "NMC / telemedicine regulations"})
+            )
+        )
+
+    if "fintech" in name or "fi liability" in name:
+        return (
+            sector == "Fintech"
+            and (
+                _bool(profile, "payment_or_card_program")
+                or bool(profile.get("rbi_registration"))
+                or "Payments / financial transactions" in data
+                or "Personal identity data (KYC / Aadhaar)" in data
+                or "RBI / SEBI / IRDAI licensed" in regulatory
+            )
+        )
+
+    if "product recall" in name or "contamination" in name:
+        return (
+            _bool(profile, "product_recall_exposure")
+            or _bool(profile, "food_or_pharma_manufacturing")
+            or "FSSAI / food safety" in regulatory
+            or "Kitchen / food processing" in assets
+            or ("D2C / Consumer Brands" == sector and ("Physical inventory / goods" in data or hardware_split >= 0.30))
+        )
+
+    if "surety" in name or "contract performance" in name:
+        return (
+            _bool(profile, "contract_bid_or_performance_bond_need")
+            or project_value > 0
+            or "Government / PSU" in _items(profile, "customer_type")
+        )
+
+    if "media" in name or "entertainment" in name:
+        return sector == "Gaming / Media / Content" and _bool(profile, "event_or_production_operations")
+
+    return True
 
 
 def _risk_scores(profile: Dict[str, Any], cfg: Config) -> Dict[str, float]:
@@ -219,6 +362,8 @@ def eligible(bm: BundleMeta, profile: Dict[str, Any]) -> bool:
     if "any" not in bm.asset_band and asset not in bm.asset_band:
         return False
     if bm.si_cap_inr is not None and float(profile.get("asset_value_inr") or 0.0) > bm.si_cap_inr:
+        return False
+    if not _bundle_hard_gate(bm, profile):
         return False
     return True
 
@@ -316,13 +461,136 @@ def revenue_score(bm: BundleMeta) -> float:
     return round(100.0 * (0.4 * tam_component + 0.3 * unit_component + 0.3 * trajectory), 2)
 
 
-def explain(bm: BundleMeta, cov: float, rev: float, rm: float, mults: Dict[str, float], profile: Dict[str, Any]) -> Dict[str, str]:
+def _fit(*values: float) -> float:
+    clean = [max(0.0, min(1.0, value)) for value in values if value is not None]
+    if not clean:
+        return 0.0
+    return max(clean)
+
+
+def exposure_fit(bm: BundleMeta, profile: Dict[str, Any]) -> float:
+    name = _bundle_slug(bm.name)
+    sector = str(profile.get("sector") or "")
+    assets_cr = _asset_value_cr(profile)
+    assets = _items(profile, "physical_assets")
+    data = _items(profile, "data_handled")
+    regulatory = _items(profile, "regulatory")
+    team = _num(profile, "team_size", 0)
+    fleet_count = _num(profile, "fleet_count")
+    hardware_split = _num(profile, "hardware_software_split")
+    project_value = _num(profile, "project_value_cr") or _num(profile, "capex_project_value_cr")
+    revenue = _num(profile, "annual_revenue_cr")
+
+    if "startup shield" in name:
+        return _fit(
+            0.85 if not _any_physical_presence(profile) else 0.25,
+            0.75 if sector in ("Fintech", "Healthtech", "SaaS / Enterprise Software") and not assets else 0.0,
+            0.70 if data & {"Payments / financial transactions", "Personal identity data (KYC / Aadhaar)"} else 0.0,
+        )
+    if "business package" in name or "enterprise secure" in name:
+        return _fit(
+            0.75 if _any_physical_presence(profile) else 0.0,
+            min(1.0, team / 75.0) * 0.65,
+            min(1.0, assets_cr / 20.0),
+            0.45 if _funded(profile) else 0.0,
+        )
+    if "industrial all risk" in name or "large property" in name:
+        return _fit(
+            min(1.0, assets_cr / 75.0),
+            0.85 if "Manufacturing plant / factory" in assets else 0.0,
+            0.80 if "Solar / clean energy infrastructure" in assets else 0.0,
+            0.70 if "Data centre / server room" in assets else 0.0,
+            hardware_split,
+        )
+    if "mobility" in name or "delivery fleet" in name:
+        return _fit(
+            min(1.0, fleet_count / 80.0),
+            0.90 if "Vehicles / delivery fleet" in assets else 0.0,
+            min(1.0, _num(profile, "gig_headcount_pct") * 1.5),
+        )
+    if "healthcare" in name or "medical liability" in name:
+        return _fit(
+            1.0 if _bool(profile, "healthcare_operations") else 0.0,
+            0.80 if "Health / medical records" in data else 0.0,
+            0.90 if "Medical devices / diagnostic equipment" in assets else 0.0,
+            0.85 if regulatory & {"CDSCO / medical devices", "NMC / telemedicine regulations"} else 0.0,
+        )
+    if "fintech" in name or "fi liability" in name:
+        return _fit(
+            1.0 if _bool(profile, "payment_or_card_program") else 0.0,
+            0.90 if profile.get("rbi_registration") else 0.0,
+            0.85 if "Payments / financial transactions" in data else 0.0,
+            0.75 if "Personal identity data (KYC / Aadhaar)" in data else 0.0,
+        )
+    if "product recall" in name or "contamination" in name:
+        return _fit(
+            1.0 if _bool(profile, "product_recall_exposure") else 0.0,
+            1.0 if _bool(profile, "food_or_pharma_manufacturing") else 0.0,
+            0.95 if "FSSAI / food safety" in regulatory else 0.0,
+            0.70 if "Physical inventory / goods" in data else 0.0,
+            hardware_split,
+        )
+    if "surety" in name or "contract performance" in name:
+        return _fit(
+            1.0 if _bool(profile, "contract_bid_or_performance_bond_need") else 0.0,
+            min(1.0, project_value / 75.0),
+            0.65 if "Government / PSU" in _items(profile, "customer_type") else 0.0,
+        )
+    if "media" in name or "entertainment" in name:
+        return _fit(
+            1.0 if _bool(profile, "event_or_production_operations") else 0.0,
+            0.65 if sector == "Gaming / Media / Content" else 0.0,
+            min(1.0, revenue / 20.0) * 0.5,
+        )
+
+    # Generic fallback for existing nine bundles.
+    return _fit(
+        min(1.0, assets_cr / 50.0),
+        min(1.0, team / 200.0),
+        0.45 if _any_physical_presence(profile) else 0.25,
+        hardware_split,
+    )
+
+
+def regulatory_fit(bm: BundleMeta, profile: Dict[str, Any], cfg: Config) -> float:
+    fired = fired_triggers(profile, cfg)
+    if not bm.regulatory_anchors and not fired:
+        return 0.35
+    components = set(bm.components)
+    matched = sum(1 for trigger in fired if trigger["product"] in components)
+    anchor_fit = 0.30 if bm.regulatory_anchors else 0.0
+    if fired:
+        return min(1.0, anchor_fit + matched / max(1, len(fired)))
+    return anchor_fit
+
+
+def commercial_fit(bm: BundleMeta) -> float:
+    # Commercial opportunity is intentionally capped; underwriting fit leads the rank.
+    return min(1.0, revenue_score(bm) / 100.0)
+
+
+def explain(
+    bm: BundleMeta,
+    cov: float,
+    rev: float,
+    rm: float,
+    mults: Dict[str, float],
+    profile: Dict[str, Any],
+    coverage_fit_value: float,
+    exposure_fit_value: float,
+    regulatory_fit_value: float,
+    commercial_fit_value: float,
+) -> Dict[str, str]:
     top_risks = sorted(_risk_scores(profile, load_config()).items(), key=lambda item: item[1], reverse=True)
     covered_top = sum(1 for risk, _score in top_risks[:11] if risk in set(bm.covered_risks))
     addressable = bm.tam_cr * bm.adoption * bm.margin
     avg_mult = sum(mults.values()) / max(1, len(mults))
     return {
-        "coverage": f"This bundle covers {covered_top} of your top 11 risks; weighted coverage = {cov:.2f}.",
+        "coverage": f"This bundle covers {covered_top} of your top 11 risks; weighted coverage = {cov:.2f}." if covered_top > 8 else "",
+        "scoring": (
+            "Final score = 55% coverage fit + 25% exposure fit + 10% regulatory fit + 10% commercial fit "
+            f"({coverage_fit_value:.2f}, {exposure_fit_value:.2f}, {regulatory_fit_value:.2f}, {commercial_fit_value:.2f})."
+        ),
         "revenue": f"Bundle TAM INR {bm.tam_cr:,.0f} cr x adoption {bm.adoption:.0%} x margin {bm.margin:.0%} = INR {addressable:,.0f} cr addressable.",
         "risk_multiplier": f"{rm:.2f}x bundle risk multiplier with blended profile multiplier {avg_mult:.2f}x under config {load_config().config_version}.",
     }
@@ -360,14 +628,22 @@ def rank(profile: Dict[str, Any], cfg: Optional[Config] = None) -> List[Recommen
         prem = premium_potential(bm, profile, mults, PRODUCTS)
         rev = revenue_score(bm)
         rm = bm.risk_mult
-        final = (0.50 * cov_norm + 0.30 * (rev / 100.0) + 0.20 * bm.adoption) * rm
+        exp_fit = exposure_fit(bm, profile)
+        reg_fit = regulatory_fit(bm, profile, cfg)
+        comm_fit = commercial_fit(bm)
+        final = (
+            0.55 * cov_norm
+            + 0.25 * exp_fit
+            + 0.10 * reg_fit
+            + 0.10 * comm_fit
+        )
         results.append(Recommendation(
             bundle=bm.name,
             final=round(final, 3),
             premium_inr=round(prem),
             risk_mult=rm,
             revenue_score=rev,
-            rationale=explain(bm, cov, rev, rm, mults, profile),
+            rationale=explain(bm, cov, rev, rm, mults, profile, cov_norm, exp_fit, reg_fit, comm_fit),
             regulatory_triggers_fired=fired_triggers(profile, cfg),
             graduation_next=cfg.graduation_map.get(stage),
             compliance_flags=compliance_flags(bm, profile, cfg),

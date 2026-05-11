@@ -17,15 +17,18 @@ log = logging.getLogger(__name__)
 # covered_risks maps each bundle to the 13-category short-keys it addresses.
 # ---------------------------------------------------------------------------
 BUNDLE_CATALOG = {
+    # ── Real ICICI Lombard named bundle products ──────────────────────────────
     "msme_suraksha_kavach": {
         "name": "MSME Suraksha Kavach",
+        "is_real_il_bundle": True,
+        "il_product_url": "",
         "il_product_name": "ICICI Lombard MSME Suraksha Kavach Package Policy - Advance",
         "mandatory_covers": ["property_fire", "burglary", "business_interruption"],
         "optional_covers": ["cyber_liability", "product_liability", "money_insurance", "public_liability", "employees_comp"],
         "prerequisites": {"business_interruption": "property_fire"},
         "eligible_sectors": {"D2C / Consumer Brands", "Logistics / Mobility", "Foodtech / Cloud Kitchen", "Agritech", "Cleantech / Climatetech", "Deeptech / AI / Robotics"},
         "eligible_stages": ["Pre-seed", "Seed", "Series A"],
-        "description": "All-in-one MSME package for startups with premises, inventory, burglary, public liability, and optional cyber exposure.",
+        "description": "Active 2025 Advance MSME package for startups with premises, inventory, burglary, public liability, and optional cyber exposure. The older 2024 version was withdrawn and replaced by the 2025 Advance version.",
         "criticality": "High",
         "covered_risks": ["property", "liability", "gig_labour"],
         "covers_criticality": {
@@ -41,7 +44,9 @@ BUNDLE_CATALOG = {
     },
     "corporate_cover_ii": {
         "name": "Corporate Cover II",
-        "il_product_name": "Corporate Cover II Insurance Policy",
+        "is_real_il_bundle": True,
+        "il_product_url": "",
+        "il_product_name": "ICICI Lombard Corporate Cover II Insurance Policy",
         "mandatory_covers": ["property_fire", "business_interruption", "public_liability", "employees_comp"],
         "optional_covers": ["cyber_liability", "dno_liability", "professional_indemnity", "crime_fidelity", "marine_transit", "trade_credit"],
         "prerequisites": {"business_interruption": "property_fire"},
@@ -63,15 +68,17 @@ BUNDLE_CATALOG = {
             "trade_credit": {"criticality": "Optional", "reason": "Add where receivables are concentrated in a small number of customers."},
         },
     },
-    "startup_shield_pack": {
-        "name": "Startup Shield Pack",
-        "il_product_name": "Business Shield SME / Business Guard Plus / I-select Liability Insurance",
+    "business_shield_sme": {
+        "name": "Business Shield SME",
+        "is_real_il_bundle": True,
+        "il_product_url": "",
+        "il_product_name": "Business Shield SME / Business Guard Plus",
         "mandatory_covers": ["cyber_liability", "dno_liability", "professional_indemnity"],
         "optional_covers": ["employee_health", "group_pa", "employment_practices", "key_person", "crime_fidelity"],
         "prerequisites": {},
-        "eligible_sectors": {"SaaS / Enterprise Software", "Fintech", "Healthtech", "Edtech", "Legaltech", "HRtech", "Gaming / Media / Content"},
+        "eligible_sectors": {"SaaS / Enterprise Software", "Fintech", "Healthtech", "Edtech", "Legaltech", "HRtech", "Gaming / Media / Content", "Insurtech"},
         "eligible_stages": ["Seed", "Series A", "Series B+"],
-        "description": "Digital-first bundle for startups whose main assets are data, founders, IP, and client contracts.",
+        "description": "All-in-one SME business risk solution for digital-first startups with no significant physical plant. Anchors cyber, D&O, and PI liability under a single policy frame with optional HR and financial crime covers.",
         "criticality": "High",
         "covered_risks": ["cyber_technical", "data_privacy", "ip_infringement", "key_person", "governance_fraud", "reputation"],
         "covers_criticality": {
@@ -87,13 +94,15 @@ BUNDLE_CATALOG = {
     },
     "bharat_sookshma_udyam": {
         "name": "Bharat Sookshma Udyam Suraksha",
+        "is_real_il_bundle": True,
+        "il_product_url": "",
         "il_product_name": "ICICI Bharat Sookshma Udyam Suraksha Policy",
         "mandatory_covers": ["property_fire"],
         "optional_covers": ["burglary", "money_insurance", "employees_comp", "public_liability", "machinery_breakdown"],
         "prerequisites": {},
         "eligible_sectors": {"Agritech", "Foodtech / Cloud Kitchen", "D2C / Consumer Brands", "Cleantech / Climatetech", "Logistics / Mobility"},
         "eligible_stages": ["Pre-seed", "Seed"],
-        "description": "Entry-level micro-enterprise property policy for startups with modest physical asset values.",
+        "description": "IRDAI-standardised policy for micro enterprises; covers building, plant, machinery, furniture, raw materials, electric fittings, finished goods and stock at one location up to INR 5 Cr.",
         "criticality": "Medium",
         "covered_risks": ["property"],
         "covers_criticality": {
@@ -105,27 +114,123 @@ BUNDLE_CATALOG = {
             "machinery_breakdown": {"criticality": "Optional", "reason": "Add where equipment breakdown can stop operations."},
         },
     },
-    "deeptech_innovation_bundle": {
-        "name": "Deeptech Innovation Bundle",
-        "il_product_name": "Property All Risk + Electronic Equipment + PI (Tech) + D&O",
-        "mandatory_covers": ["property_all_risk", "electronic_equipment", "professional_indemnity", "dno_liability"],
-        "optional_covers": ["cyber_liability", "product_liability", "key_person", "contractors_all_risk", "drone_insurance"],
-        "prerequisites": {},
-        "eligible_sectors": {"Deeptech / AI / Robotics", "Cleantech / Climatetech", "Healthtech", "Agritech"},
+    "industrial_all_risk": {
+        "name": "Industrial All Risk (IAR) Policy",
+        "is_real_il_bundle": True,
+        "il_product_url": "",
+        "il_product_name": "ICICI Lombard IAR Policy / Industrial All Risk Policy",
+        "mandatory_covers": ["property_all_risk", "electronic_equipment", "business_interruption", "professional_indemnity", "dno_liability"],
+        "optional_covers": ["cyber_liability", "product_liability", "key_person", "contractors_all_risk", "drone_insurance", "machinery_breakdown"],
+        "prerequisites": {"business_interruption": "property_all_risk"},
+        "eligible_sectors": {"Deeptech / AI / Robotics", "Cleantech / Climatetech", "Healthtech", "Agritech", "Logistics / Mobility"},
         "eligible_stages": ["Seed", "Series A", "Series B+"],
-        "description": "Designed for hardware-software hybrid startups with R&D equipment, pilots, IP, and product liability exposure.",
+        "description": "Exclusion-based package policy for hardware-software hybrid startups with R&D equipment, labs, pilot plants, or manufacturing. Covers material damage, theft and burglary, machinery breakdown, boiler explosion, business interruption, electronic equipment, and machinery loss of profit under one policy schedule.",
         "criticality": "High",
-        "covered_risks": ["property", "ip_infringement", "key_person", "cyber_technical", "liability"],
+        "covered_risks": ["property", "ip_infringement", "key_person", "cyber_technical", "liability", "regulatory_compliance"],
         "covers_criticality": {
-            "property_all_risk": {"criticality": "Mandatory", "reason": "R&D labs and pilot plants need broader accidental damage cover than basic fire."},
-            "electronic_equipment": {"criticality": "Mandatory", "reason": "Servers, GPU clusters, lab electronics, and control systems need affirmative EEI cover."},
-            "professional_indemnity": {"criticality": "Mandatory", "reason": "Failed deployments, model drift, and tech service errors can create B2B claims."},
+            "property_all_risk": {"criticality": "Mandatory", "reason": "Large plants, labs, and warehouses need broader all-risk wording than entry-level fire cover."},
+            "business_interruption": {"criticality": "Mandatory", "reason": "High fixed costs and downtime make BI central to the industrial risk."},
+            "machinery_breakdown": {"criticality": "Mandatory", "reason": "Plant and machinery failure can stop revenue even without external peril."},
+            "electronic_equipment": {"criticality": "Mandatory", "reason": "GPU clusters, lab electronics, and control systems need affirmative EEI cover."},
+            "professional_indemnity": {"criticality": "Mandatory", "reason": "Failed hardware deployments, model drift, and tech service errors create B2B claims."},
             "dno_liability": {"criticality": "Mandatory", "reason": "Export controls, IP decisions, and investor disclosures create board exposure."},
-            "cyber_liability": {"criticality": "Recommended", "reason": "Connected hardware and AI systems raise attack surface."},
-            "product_liability": {"criticality": "Recommended", "reason": "Hardware, medical devices, robotics, and consumer devices can injure third parties."},
-            "key_person": {"criticality": "Optional", "reason": "Deeptech teams often depend on one or two irreplaceable technical founders."},
-            "contractors_all_risk": {"criticality": "Optional", "reason": "Add for physical installation projects and pilot plants."},
-            "drone_insurance": {"criticality": "Optional", "reason": "Add for UAV products or commercial drone operations."},
+            "public_liability": {"criticality": "Recommended", "reason": "Factories and warehouses create third-party injury/property damage exposure."},
+            "employees_comp": {"criticality": "Recommended", "reason": "Add for factory, warehouse, plant, and field workers."},
+            "parametric": {"criticality": "Optional", "reason": "Add for flood, cyclone, heat, or weather-triggered downtime exposure."},
+            "engineering": {"criticality": "Optional", "reason": "Add for physical installation projects and pilot plants."},
+            "drone_insurance": {"criticality": "Optional", "reason": "Add for UAV products or commercial drone operations (DGCA Drone Rules 2021 Rule 44)."},
+        },
+    },
+    "group_safeguard": {
+        "name": "Group Safeguard Insurance Policy",
+        "is_real_il_bundle": True,
+        "il_product_url": "",
+        "il_product_name": "Group Safeguard Insurance Policy",
+        "mandatory_covers": ["employee_health", "group_pa", "employees_comp"],
+        "optional_covers": ["key_person", "employment_practices"],
+        "prerequisites": {},
+        "eligible_sectors": {"SaaS / Enterprise Software", "Fintech", "Healthtech", "Edtech", "Legaltech", "HRtech", "D2C / Consumer Brands", "Logistics / Mobility", "Foodtech / Cloud Kitchen", "Agritech", "Cleantech / Climatetech", "Deeptech / AI / Robotics", "Gaming / Media / Content", "Insurtech"},
+        "eligible_stages": ["Seed", "Series A", "Series B+"],
+        "description": "Group protection umbrella covering employee health, accident, and compensation under a single group policy. Relevant for any funded startup with 5+ employees. Triggered by headcount, funding stage, and gig workforce exposure.",
+        "criticality": "High",
+        "covered_risks": ["key_person", "gig_labour", "liability", "regulatory_compliance"],
+        "covers_criticality": {
+            "employee_health": {"criticality": "Mandatory", "reason": "Group health is the baseline employee benefit and IRDAI-regulated requirement from 20+ employees."},
+            "group_pa": {"criticality": "Mandatory", "reason": "Low-cost accident cover; mandatory for aggregator platforms under Code on Social Security 2020 Schedule VII."},
+            "employees_comp": {"criticality": "Mandatory", "reason": "Employees' Compensation Act 1923; legally required for hazardous occupations and practically important for field/factory/delivery workforces."},
+            "employment_practices": {"criticality": "Optional", "reason": "Add as headcount, POSH, and wrongful-termination exposure grow."},
+        },
+    },
+    "contractor_all_risk": {
+        "name": "Contractor All Risk (CAR) Insurance Policy",
+        "is_real_il_bundle": True,
+        "il_product_url": "",
+        "il_product_name": "Contractor All Risk Insurance Policy / Erection All Risks Insurance",
+        "mandatory_covers": ["engineering", "public_liability"],
+        "optional_covers": ["business_interruption", "surety", "marine_transit"],
+        "prerequisites": {},
+        "eligible_sectors": {"Cleantech / Climatetech", "Deeptech / AI / Robotics", "Agritech", "Logistics / Mobility", "D2C / Consumer Brands"},
+        "eligible_stages": ["Series A", "Series B+"],
+        "description": "Engineering package for startups with active construction, installation, or erection projects. Covers material damage to contract works, third-party liability during construction, and optional advance loss of profit for project delays. Duration matches contract period.",
+        "criticality": "Medium",
+        "covered_risks": ["property", "liability", "esg_climate", "ip_infringement"],
+        "covers_criticality": {
+            "engineering": {"criticality": "Mandatory", "reason": "CAR/EAR covers the contract works, plant, equipment, and third-party liability during construction."},
+            "public_liability": {"criticality": "Mandatory", "reason": "Third-party bodily injury/property damage during construction is a standard contractual requirement."},
+            "employees_comp": {"criticality": "Recommended", "reason": "Site workers, contractors, and sub-contractors create workforce injury exposure."},
+            "marine_transit": {"criticality": "Optional", "reason": "Add for imported project cargo or delayed start-up exposure."},
+            "surety": {"criticality": "Optional", "reason": "Add for government contracts requiring bid or performance bonds (IRDAI Surety Guidelines 2022)."},
+        },
+    },
+    "business_edge": {
+        "name": "Business Edge Policy",
+        "is_real_il_bundle": True,
+        "il_product_url": "",
+        "il_product_name": "Business Edge Policy",
+        "mandatory_covers": ["property_fire", "burglary", "public_liability"],
+        "optional_covers": ["employees_comp", "business_interruption", "money_insurance", "cyber_liability"],
+        "prerequisites": {"business_interruption": "property_fire"},
+        "eligible_sectors": {"D2C / Consumer Brands", "Agritech", "Foodtech / Cloud Kitchen", "Logistics / Mobility", "Cleantech / Climatetech"},
+        "eligible_stages": ["Pre-seed", "Seed", "Series A"],
+        "description": "Commercial package product for SMEs with light physical presence - office, stock, and basic liability under one policy. Best for early-stage non-digital startups with modest asset values but real premises and workforce.",
+        "criticality": "Medium",
+        "covered_risks": ["property", "liability", "gig_labour"],
+        "covers_criticality": {
+            "property_fire": {"criticality": "Mandatory", "reason": "Physical premises or business assets need a property anchor before add-on covers."},
+            "public_liability": {"criticality": "Mandatory", "reason": "Customers, vendors, and visitors create third-party injury/property damage exposure."},
+            "business_interruption": {"criticality": "Recommended", "reason": "Protects cash flow when insured property damage interrupts operations."},
+            "employees_comp": {"criticality": "Recommended", "reason": "Add when employees, field teams, or blue-collar workers are present."},
+            "burglary": {"criticality": "Mandatory", "reason": "Stock and equipment theft cover."},
+            "money_insurance": {"criticality": "Optional", "reason": "Add where significant daily cash is handled."},
+            "machinery_breakdown": {"criticality": "Optional", "reason": "Add where equipment breakdown can stop operations."},
+            "cyber_liability": {"criticality": "Optional", "reason": "Add for digital payments, customer data, or online service delivery."},
+        },
+    },
+    "enterprise_secure": {
+        "name": "Enterprise Secure Package Policy",
+        "is_real_il_bundle": True,
+        "il_product_url": "",
+        "il_product_name": "Enterprise Secure Package Policy",
+        "mandatory_covers": ["property_fire", "business_interruption", "public_liability", "employees_comp", "cyber_liability", "dno_liability"],
+        "optional_covers": ["professional_indemnity", "crime_fidelity", "marine_transit", "trade_credit", "product_liability"],
+        "prerequisites": {"business_interruption": "property_fire"},
+        "eligible_sectors": {"SaaS / Enterprise Software", "Fintech", "Healthtech", "Legaltech", "HRtech", "D2C / Consumer Brands", "Logistics / Mobility", "Cleantech / Climatetech", "Deeptech / AI / Robotics"},
+        "eligible_stages": ["Series B+"],
+        "description": "All-in-one enterprise risk solution for Series B+ startups with multi-site operations, enterprise contracts, and material regulatory exposure. Combines property, liability, cyber, and financial lines under a single enterprise-grade commercial package.",
+        "criticality": "High",
+        "covered_risks": ["property", "liability", "governance_fraud", "cyber_technical", "data_privacy", "key_person", "regulatory_compliance"],
+        "covers_criticality": {
+            "property_fire": {"criticality": "Mandatory", "reason": "Property anchor is required before BI and liability add-ons."},
+            "business_interruption": {"criticality": "Mandatory", "reason": "Protects cash flow and monthly burn when insured property damage interrupts operations."},
+            "public_liability": {"criticality": "Mandatory", "reason": "Enterprise and vendor contracts frequently require third-party liability cover."},
+            "employees_comp": {"criticality": "Mandatory", "reason": "Required for hazardous occupations and distributed teams."},
+            "cyber_liability": {"criticality": "Mandatory", "reason": "DPDP Act and CERT-In 2022 obligations at this scale."},
+            "dno_liability": {"criticality": "Mandatory", "reason": "Institutional investor boards require D&O."},
+            "professional_indemnity": {"criticality": "Optional", "reason": "Add for B2B services and SaaS contracts."},
+            "crime_fidelity": {"criticality": "Optional", "reason": "Add for payment operations, finance teams, and insider fraud exposure."},
+            "marine_transit": {"criticality": "Optional", "reason": "Add where physical goods are shipped domestically or cross-border."},
+            "trade_credit": {"criticality": "Optional", "reason": "Add where receivables are concentrated in a small number of customers."},
+            "product_liability": {"criticality": "Optional", "reason": "Add where physical products can injure customers or damage property."},
         },
     },
 }
@@ -254,9 +359,21 @@ def _premium_potential(bundle_meta: dict, mults: dict) -> float:
     return base * blended
 
 
+def _startup_tam_ceiling() -> float:
+    metas = _load_research_config().get("bundle_meta", {}).values()
+    values = [
+        float(meta.get("startup_addressable_tam_cr") or meta.get("tam_cr") or 0)
+        for meta in metas
+    ]
+    return max(values) if values else 1.0
+
+
 def _revenue_score(bm: dict) -> float:
     traj = {"up": 1.0, "flat": 0.5, "down": 0.0}.get(bm.get("trajectory", "flat"), 0.5)
-    tam_norm = min(bm.get("tam_cr", 0) / 16250.0, 1.0)
+    # Use startup_addressable_tam_cr when available; fall back to tam_cr.
+    # Normalise against the largest startup-addressable TAM, not full-market TAM.
+    startup_tam = bm.get("startup_addressable_tam_cr") or bm.get("tam_cr", 0)
+    tam_norm = min(startup_tam / _startup_tam_ceiling(), 1.0)
     return round(
         100 * (
             0.35 * tam_norm
@@ -266,6 +383,16 @@ def _revenue_score(bm: dict) -> float:
         ),
         1,
     )
+
+
+def _config_key_for_bundle(cfg: dict, bundle_name: str) -> str:
+    direct = bundle_name.replace(" ", "_")
+    if direct in cfg.get("bundle_meta", {}):
+        return direct
+    for key, meta in cfg.get("bundle_meta", {}).items():
+        if meta.get("name") == bundle_name:
+            return key
+    return direct
 
 
 # ---------------------------------------------------------------------------
@@ -349,7 +476,7 @@ def rank_bundles(sector: str, stage: str, scores: dict, inp) -> list:
 
     rows = []
     for bundle in BUNDLE_CATALOG.values():
-        cfg_key = bundle["name"].replace(" ", "_")
+        cfg_key = _config_key_for_bundle(cfg, bundle["name"])
         meta    = cfg["bundle_meta"].get(cfg_key)
 
         # ── Legacy display fit (unchanged logic) ───────────────────────────

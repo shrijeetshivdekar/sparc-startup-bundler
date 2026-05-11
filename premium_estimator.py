@@ -36,9 +36,9 @@ PREMIUM_RANGES = {
         "growth": {"min_lakh": 2.5, "max_lakh": 8.0, "basis": "Large team, warehouse/logistics ops"},
     },
     "property_fire": {
-        "micro": {"min_lakh": 0.3, "max_lakh": 1.2, "basis": "INR 2cr property value"},
-        "small": {"min_lakh": 1.2, "max_lakh": 4.0, "basis": "INR 10cr property value"},
-        "growth": {"min_lakh": 4.0, "max_lakh": 15.0, "basis": "INR 50cr property value"},
+        "micro": {"min_lakh": 0.50, "max_lakh": 2.00, "basis": "INR 2Cr property; post-IRDAI de-tariff Apr 2024"},
+        "small": {"min_lakh": 2.00, "max_lakh": 6.50, "basis": "INR 10Cr property; non-tariff SME market rate"},
+        "growth": {"min_lakh": 6.50, "max_lakh": 22.00, "basis": "INR 50Cr property; market range post-de-notification"},
     },
     "business_edge": {
         "micro": {"min_lakh": 0.4, "max_lakh": 1.5, "basis": "Package: fire+burglary+PL, SME"},
@@ -66,9 +66,9 @@ PREMIUM_RANGES = {
         "growth": {"min_lakh": 4.0, "max_lakh": 12.0, "basis": "INR 15cr cover, leadership team"},
     },
     "employment_practices": {
-        "micro": {"min_lakh": 0.3, "max_lakh": 1.0, "basis": "INR 1cr limit, small team"},
-        "small": {"min_lakh": 1.0, "max_lakh": 3.5, "basis": "INR 3cr limit, 50 employees"},
-        "growth": {"min_lakh": 3.5, "max_lakh": 10.0, "basis": "INR 10cr limit, 150+ employees"},
+        "micro": {"min_lakh": 0.40, "max_lakh": 1.20, "basis": "INR 1Cr limit, team < 25, low POSH exposure"},
+        "small": {"min_lakh": 1.20, "max_lakh": 3.50, "basis": "INR 3Cr limit, Series A, 50 employees"},
+        "growth": {"min_lakh": 3.50, "max_lakh": 10.00, "basis": "INR 10Cr limit, Series B+, 150+ employees"},
     },
     "crime_fidelity": {
         "micro": {"min_lakh": 0.3, "max_lakh": 1.0, "basis": "INR 50L coverage, small finance ops"},
@@ -115,6 +115,36 @@ PREMIUM_RANGES = {
         "small": {"min_lakh": 2.0, "max_lakh": 7.0, "basis": "20-vehicle fleet"},
         "growth": {"min_lakh": 7.0, "max_lakh": 25.0, "basis": "100-vehicle fleet"},
     },
+    "healthcare_pi": {
+        "micro": {"min_lakh": 0.8, "max_lakh": 2.5, "basis": "Small clinic/diagnostic exposure, INR 1-2cr PI limit"},
+        "small": {"min_lakh": 2.5, "max_lakh": 9.0, "basis": "Multi-location healthtech, INR 5cr PI limit"},
+        "growth": {"min_lakh": 9.0, "max_lakh": 30.0, "basis": "Scaled clinical operations, INR 20cr+ PI limit"},
+    },
+    "financial_services_pi": {
+        "micro": {"min_lakh": 1.0, "max_lakh": 3.5, "basis": "Small regulated fintech, INR 2cr FI PI limit"},
+        "small": {"min_lakh": 3.5, "max_lakh": 12.0, "basis": "NBFC/payment profile, INR 5-10cr FI PI limit"},
+        "growth": {"min_lakh": 12.0, "max_lakh": 40.0, "basis": "Growth fintech, INR 25cr+ FI PI limit"},
+    },
+    "payment_protection": {
+        "micro": {"min_lakh": 0.5, "max_lakh": 1.8, "basis": "Low-volume card/payment programme"},
+        "small": {"min_lakh": 1.8, "max_lakh": 6.0, "basis": "Series A payment/embedded finance exposure"},
+        "growth": {"min_lakh": 6.0, "max_lakh": 20.0, "basis": "Large payment programme and customer compensation exposure"},
+    },
+    "product_recall": {
+        "micro": {"min_lakh": 0.7, "max_lakh": 2.5, "basis": "Small batch production and basic recall limit"},
+        "small": {"min_lakh": 2.5, "max_lakh": 8.0, "basis": "D2C/FSSAI production, INR 5cr recall limit"},
+        "growth": {"min_lakh": 8.0, "max_lakh": 28.0, "basis": "Scaled FMCG/pharma/hardware recall exposure"},
+    },
+    "event_production": {
+        "micro": {"min_lakh": 0.4, "max_lakh": 1.2, "basis": "Small event or production budget"},
+        "small": {"min_lakh": 1.2, "max_lakh": 5.0, "basis": "Series A production/event slate"},
+        "growth": {"min_lakh": 5.0, "max_lakh": 18.0, "basis": "Large production schedule and venue/equipment exposure"},
+    },
+    "surety": {
+        "micro": {"min_lakh": 0.8, "max_lakh": 2.5, "basis": "Small bid/performance bond need"},
+        "small": {"min_lakh": 2.5, "max_lakh": 10.0, "basis": "EPC/solar project, INR 10cr contract value"},
+        "growth": {"min_lakh": 10.0, "max_lakh": 35.0, "basis": "Large contract performance exposure"},
+    },
     "trade_credit": {
         "micro": {"min_lakh": 0.4, "max_lakh": 1.5, "basis": "INR 2cr receivables"},
         "small": {"min_lakh": 1.5, "max_lakh": 5.0, "basis": "INR 10cr receivables"},
@@ -148,9 +178,14 @@ PREMIUM_RANGES = {
 }
 
 PREMIUM_FOOTNOTE = (
-    "Indicative estimates only. Actual premium is subject to underwriting, SI selection, "
-    "controls, and claims history. Sources: IRDAI Annual Report 2023-24, GIC Re pricing "
-    "circulars, and industry broker benchmarks Q1 2026."
+    "Indicative estimates only. Actual premium is subject to underwriting, "
+    "sum insured selection, risk controls, and claims history. Base rates reflect "
+    "post-IRDAI fire de-tariff (April 2024) market and Indian startup segment "
+    "benchmarks as of Q1 2026. Sources: Mitigata Cyber Insurance India 2026; "
+    "BimaKavach D&O startup benchmarks; BusinessStandard fire premium analysis "
+    "Dec 2024; NivaaBupa/Pazcare group health data; IRDAI Annual Report 2023-24. "
+    "Products recommended are individual ICICI Lombard policies or curated "
+    "co-cover sets - not all bundle names are single named policies."
 )
 
 

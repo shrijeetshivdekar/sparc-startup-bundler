@@ -70,10 +70,10 @@ class StartupInput:
 # =============================================================================
 SECTOR_PROFILES = {
     "SaaS / Enterprise Software": {
-        "cyber_technical": 8, "data_privacy_regulatory": 8,
+        "cyber_technical": 8, "data_privacy": 8,
         "liability": 8, "ip_infringement": 7,
         "key_person": 5, "governance_fraud": 5,
-        "property": 2, "compliance": 8,
+        "property": 2, "regulatory_compliance": 8,
         "esg_climate": 2, "geopolitical": 6,
         "gig_labour": 2, "policy_velocity": 6,
         "reputation": 6, "tax_tp": 5,
@@ -81,10 +81,10 @@ SECTOR_PROFILES = {
         "description": "Digital-first, enterprise contracts, SDF-likely, CERT-In exposure.",
     },
     "Fintech": {
-        "cyber_technical": 10, "data_privacy_regulatory": 10,
+        "cyber_technical": 10, "data_privacy": 10,
         "liability": 9, "ip_infringement": 5,
         "key_person": 8, "governance_fraud": 9,
-        "property": 3, "compliance": 10,
+        "property": 3, "regulatory_compliance": 10,
         "esg_climate": 3, "geopolitical": 8,
         "gig_labour": 5, "policy_velocity": 9,
         "reputation": 9, "tax_tp": 8,
@@ -92,10 +92,10 @@ SECTOR_PROFILES = {
         "description": "RBI/SEBI regulated, high cyber+governance exposure, PN3 sensitive.",
     },
     "Healthtech": {
-        "cyber_technical": 10, "data_privacy_regulatory": 9,
+        "cyber_technical": 10, "data_privacy": 9,
         "liability": 9, "ip_infringement": 8,
         "key_person": 6, "governance_fraud": 7,
-        "property": 5, "compliance": 9,
+        "property": 5, "regulatory_compliance": 9,
         "esg_climate": 4, "geopolitical": 6,
         "gig_labour": 5, "policy_velocity": 8,
         "reputation": 8, "tax_tp": 5,
@@ -103,10 +103,10 @@ SECTOR_PROFILES = {
         "description": "Patient data, SaMD classification risk, DPDPA + CDSCO + NMC exposure.",
     },
     "D2C / Consumer Brands": {
-        "cyber_technical": 7, "data_privacy_regulatory": 6,
+        "cyber_technical": 7, "data_privacy": 6,
         "liability": 8, "ip_infringement": 6,
         "key_person": 4, "governance_fraud": 7,
-        "property": 8, "compliance": 9,
+        "property": 8, "regulatory_compliance": 9,
         "esg_climate": 6, "geopolitical": 9,
         "gig_labour": 6, "policy_velocity": 5,
         "reputation": 8, "tax_tp": 6,
@@ -114,10 +114,10 @@ SECTOR_PROFILES = {
         "description": "BIS QCO, LMPC, EPR, CBAM EU-export, CCPA dark-patterns exposure.",
     },
     "Deeptech / AI / Robotics": {
-        "cyber_technical": 7, "data_privacy_regulatory": 7,
+        "cyber_technical": 7, "data_privacy": 7,
         "liability": 7, "ip_infringement": 10,
         "key_person": 8, "governance_fraud": 5,
-        "property": 7, "compliance": 8,
+        "property": 7, "regulatory_compliance": 8,
         "esg_climate": 7, "geopolitical": 10,
         "gig_labour": 2, "policy_velocity": 7,
         "reputation": 6, "tax_tp": 6,
@@ -125,10 +125,10 @@ SECTOR_PROFILES = {
         "description": "IP-heavy, dual-use export controls, EU AI Act extraterritorial, drone-reg.",
     },
     "Edtech": {
-        "cyber_technical": 7, "data_privacy_regulatory": 8,
+        "cyber_technical": 7, "data_privacy": 8,
         "liability": 8, "ip_infringement": 6,
         "key_person": 7, "governance_fraud": 10,
-        "property": 3, "compliance": 9,
+        "property": 3, "regulatory_compliance": 9,
         "esg_climate": 2, "geopolitical": 6,
         "gig_labour": 4, "policy_velocity": 7,
         "reputation": 9, "tax_tp": 5,
@@ -136,10 +136,10 @@ SECTOR_PROFILES = {
         "description": "CCPA consumer complaints, MoE Coaching Guidelines, DPDPA §9 minor-data, governance crisis.",
     },
     "Agritech": {
-        "cyber_technical": 4, "data_privacy_regulatory": 5,
+        "cyber_technical": 4, "data_privacy": 5,
         "liability": 6, "ip_infringement": 4,
         "key_person": 5, "governance_fraud": 6,
-        "property": 8, "compliance": 8,
+        "property": 8, "regulatory_compliance": 8,
         "esg_climate": 9, "geopolitical": 5,
         "gig_labour": 5, "policy_velocity": 5,
         "reputation": 4, "tax_tp": 4,
@@ -147,10 +147,10 @@ SECTOR_PROFILES = {
         "description": "APMC/EC-Act patchwork, drone dual-reg, highest physical-climate risk.",
     },
     "Cleantech / Climatetech": {
-        "cyber_technical": 5, "data_privacy_regulatory": 4,
+        "cyber_technical": 5, "data_privacy": 4,
         "liability": 7, "ip_infringement": 7,
         "key_person": 6, "governance_fraud": 6,
-        "property": 9, "compliance": 9,
+        "property": 9, "regulatory_compliance": 9,
         "esg_climate": 10, "geopolitical": 7,
         "gig_labour": 3, "policy_velocity": 5,
         "reputation": 6, "tax_tp": 6,
@@ -158,10 +158,10 @@ SECTOR_PROFILES = {
         "description": "ALMM supply-risk, CCTS carbon-market, CBAM EU-export, Battery Waste EPR.",
     },
     "Logistics / Mobility": {
-        "cyber_technical": 6, "data_privacy_regulatory": 6,
+        "cyber_technical": 6, "data_privacy": 6,
         "liability": 10, "ip_infringement": 3,
         "key_person": 4, "governance_fraud": 5,
-        "property": 8, "compliance": 10,
+        "property": 8, "regulatory_compliance": 10,
         "esg_climate": 8, "geopolitical": 6,
         "gig_labour": 10, "policy_velocity": 4,
         "reputation": 7, "tax_tp": 5,
@@ -169,10 +169,10 @@ SECTOR_PROFILES = {
         "description": "MV Act unlimited TP, Aggregator Guidelines 2025, gig-worker Acts, EV Battery-EPR.",
     },
     "Legaltech": {
-        "cyber_technical": 7, "data_privacy_regulatory": 8,
+        "cyber_technical": 7, "data_privacy": 8,
         "liability": 9, "ip_infringement": 7,
         "key_person": 5, "governance_fraud": 4,
-        "property": 2, "compliance": 9,
+        "property": 2, "regulatory_compliance": 9,
         "esg_climate": 1, "geopolitical": 3,
         "gig_labour": 3, "policy_velocity": 7,
         "reputation": 8, "tax_tp": 4,
@@ -180,10 +180,10 @@ SECTOR_PROFILES = {
         "description": "AI-legal liability, Advocates Act unauthorised practice, privileged-data DPDPA.",
     },
     "HRtech": {
-        "cyber_technical": 8, "data_privacy_regulatory": 9,
+        "cyber_technical": 8, "data_privacy": 9,
         "liability": 6, "ip_infringement": 4,
         "key_person": 5, "governance_fraud": 5,
-        "property": 2, "compliance": 9,
+        "property": 2, "regulatory_compliance": 9,
         "esg_climate": 2, "geopolitical": 4,
         "gig_labour": 8, "policy_velocity": 6,
         "reputation": 7, "tax_tp": 6,
@@ -191,10 +191,10 @@ SECTOR_PROFILES = {
         "description": "Labour Codes 2025, SS Code aggregator levy, payroll-PII DPDPA exposure.",
     },
     "Gaming / Media / Content": {
-        "cyber_technical": 6, "data_privacy_regulatory": 7,
+        "cyber_technical": 6, "data_privacy": 7,
         "liability": 9, "ip_infringement": 8,
         "key_person": 5, "governance_fraud": 8,
-        "property": 3, "compliance": 10,
+        "property": 3, "regulatory_compliance": 10,
         "esg_climate": 2, "geopolitical": 7,
         "gig_labour": 2, "policy_velocity": 10,
         "reputation": 9, "tax_tp": 9,
@@ -202,10 +202,10 @@ SECTOR_PROFILES = {
         "description": "Online Gaming Act 2025, 28% GST face-value, IP risk, RMG prohibition exposure.",
     },
     "Foodtech / Cloud Kitchen": {
-        "cyber_technical": 6, "data_privacy_regulatory": 6,
+        "cyber_technical": 6, "data_privacy": 6,
         "liability": 9, "ip_infringement": 4,
         "key_person": 4, "governance_fraud": 6,
-        "property": 8, "compliance": 10,
+        "property": 8, "regulatory_compliance": 10,
         "esg_climate": 7, "geopolitical": 5,
         "gig_labour": 10, "policy_velocity": 6,
         "reputation": 10, "tax_tp": 6,
@@ -223,55 +223,55 @@ SECTOR_PROFILES = {
 SUB_SECTOR_PROFILES = {
     # ── FINTECH ───────────────────────────────────────────────────────────────
     "Fintech.NBFC_Digital_Lending": {
-        "compliance": 10, "governance_fraud": 10, "liability": 10,
-        "data_privacy_regulatory": 10, "policy_velocity": 10,
+        "regulatory_compliance": 10, "governance_fraud": 10, "liability": 10,
+        "data_privacy": 10, "policy_velocity": 10,
         "_note": "RBI Digital Lending Directions 8-May-2025; DLG cap; CIMS reporting 15-Jun-2025",
     },
     "Fintech.PA_PG": {
-        "compliance": 10, "geopolitical": 9, "governance_fraud": 9,
+        "regulatory_compliance": 10, "geopolitical": 9, "governance_fraud": 9,
         "_note": "PA Directions 15-Sep-2025; PA-CB 31-Oct-2023; FIU-IND AML",
     },
     "Fintech.PA_Cross_Border": {
-        "compliance": 10, "geopolitical": 10, "governance_fraud": 9, "policy_velocity": 9,
+        "regulatory_compliance": 10, "geopolitical": 10, "governance_fraud": 9, "policy_velocity": 9,
         "_note": "PA-CB 31-Oct-2023; PMLA reporting entity; FEMA cross-border settlement",
     },
     "Fintech.WealthTech_EOP": {
-        "compliance": 9, "liability": 9, "governance_fraud": 8,
+        "regulatory_compliance": 9, "liability": 9, "governance_fraud": 8,
         "_note": "SEBI EOP Framework 13-Jun-2023; SEBI Investment Adviser Regulations",
     },
     "Fintech.Neobank_PPI": {
-        "compliance": 9, "data_privacy_regulatory": 9, "cyber_technical": 9,
+        "regulatory_compliance": 9, "data_privacy": 9, "cyber_technical": 9,
         "_note": "RBI PPI Master Directions 2021; interoperability mandate",
     },
     "Fintech.InsurTech": {
-        "compliance": 9, "liability": 8, "policy_velocity": 8,
+        "regulatory_compliance": 9, "liability": 8, "policy_velocity": 8,
         "_note": "IRDAI Bima Sugam Regs 20-Mar-2024; Bima Vistaar; Use-&-File",
     },
     "Fintech.Account_Aggregator": {
-        "compliance": 10, "data_privacy_regulatory": 10, "cyber_technical": 10,
+        "regulatory_compliance": 10, "data_privacy": 10, "cyber_technical": 10,
         "_note": "NBFC-AA MD 2016; DPDPA §8 consent-manager obligations",
     },
     # ── HEALTHTECH ────────────────────────────────────────────────────────────
     "Healthtech.Telemedicine": {
-        "liability": 10, "compliance": 10,
+        "liability": 10, "regulatory_compliance": 10,
         "_note": "NMC Telemedicine Guidelines 2020 + 2025 Amendment; DPDPA health-data",
     },
     "Healthtech.Diagnostics": {
-        "liability": 9, "compliance": 9, "ip_infringement": 7,
+        "liability": 9, "regulatory_compliance": 9, "ip_infringement": 7,
         "_note": "NABL accreditation; MDR 2017 IVD classification",
     },
     "Healthtech.PharmaTech_ePharmacy": {
-        "compliance": 10, "liability": 9, "reputation": 9,
+        "regulatory_compliance": 10, "liability": 9, "reputation": 9,
         "_note": "Drugs & Cosmetics Act; Drugs Rules 1945; e-pharmacy draft rules",
     },
     "Healthtech.MedDevice_SaMD": {
-        "compliance": 10, "liability": 10, "ip_infringement": 9, "policy_velocity": 9,
+        "regulatory_compliance": 10, "liability": 10, "ip_infringement": 9, "policy_velocity": 9,
         "_note": "CDSCO SaMD Draft Guidance 21-Oct-2025; Class B/C/D; S.O. 648(E) 11-Feb-2020",
         "_auto_include": ["clinical_trials", "product_liability"],
         "_decline_without_cdsco_licence": True,
     },
     "Healthtech.Clinical_Trials_SaaS": {
-        "compliance": 10, "liability": 10,
+        "regulatory_compliance": 10, "liability": 10,
         "_note": "CDSCO NDCT Rules 2019; ICH-GCP; mandatory coverage pre-trial",
         "_auto_include": ["clinical_trials"],
     },
@@ -285,11 +285,11 @@ SUB_SECTOR_PROFILES = {
         ),
     },
     "Gaming.Casual_Esports": {
-        "policy_velocity": 7, "compliance": 8,
+        "policy_velocity": 7, "regulatory_compliance": 8,
         "_note": "Not caught by Online Gaming Act §2(k) definition; lower GST exposure",
     },
     "Gaming.OTT": {
-        "compliance": 8, "liability": 7, "ip_infringement": 9,
+        "regulatory_compliance": 8, "liability": 7, "ip_infringement": 9,
         "_note": "IT Rules 2021 Rule 9; content certification; copyright clearance",
     },
     "Gaming.Creator_Economy": {
@@ -298,7 +298,7 @@ SUB_SECTOR_PROFILES = {
     },
     # ── LOGISTICS ─────────────────────────────────────────────────────────────
     "Logistics.Last_Mile_Delivery": {
-        "gig_labour": 10, "compliance": 10, "liability": 10,
+        "gig_labour": 10, "regulatory_compliance": 10, "liability": 10,
         "_note": "MV Aggregator Guidelines 2025; Karnataka/Rajasthan/Bihar gig Acts",
         "_auto_include": ["motor_fleet", "group_pa", "employees_comp"],
     },
@@ -307,27 +307,27 @@ SUB_SECTOR_PROFILES = {
         "_note": "Carriage by Road Act 2007; transit liability",
     },
     "Logistics.EV_OEM": {
-        "compliance": 10, "esg_climate": 9, "property": 8,
+        "regulatory_compliance": 10, "esg_climate": 9, "property": 8,
         "_note": "BWM Rules 2022 EPR; PM E-DRIVE Sep-2024; AIS-156 battery safety",
     },
     # ── D2C ───────────────────────────────────────────────────────────────────
     "D2C.Hardware_Electronics": {
-        "compliance": 10, "liability": 9, "geopolitical": 10,
+        "regulatory_compliance": 10, "liability": 9, "geopolitical": 10,
         "_note": "BIS QCO + LMPC + PWM EPR; Chinese component exposure (PN3)",
         "_auto_include": ["product_liability"],
     },
     "D2C.Food_Beverage": {
-        "compliance": 10, "liability": 10, "reputation": 10,
+        "regulatory_compliance": 10, "liability": 10, "reputation": 10,
         "_note": "FSSAI LRS Regulations 2011; FSSAI Organic Standards; recall risk",
         "_auto_include": ["product_liability"],
     },
     "D2C.Apparel_Footwear": {
-        "compliance": 9, "esg_climate": 7,
+        "regulatory_compliance": 9, "esg_climate": 7,
         "_note": "BIS IS 17043/15844 QCO 1-Aug-2024; LMPC; EPR plastic",
     },
     # ── DEEPTECH ──────────────────────────────────────────────────────────────
     "Deeptech.AI_Software": {
-        "compliance": 9, "policy_velocity": 9, "ip_infringement": 10,
+        "regulatory_compliance": 9, "policy_velocity": 9, "ip_infringement": 10,
         "_note": "MeitY AI Advisory; EU AI Act Art 2(1)(c); SGI Rules 10-Feb-2026",
         "_auto_include": ["professional_indemnity"],
     },
@@ -337,12 +337,12 @@ SUB_SECTOR_PROFILES = {
     },
     # ── EDTECH ────────────────────────────────────────────────────────────────
     "Edtech.K12_Children": {
-        "compliance": 10, "data_privacy_regulatory": 10, "reputation": 10,
+        "regulatory_compliance": 10, "data_privacy": 10, "reputation": 10,
         "_note": "DPDPA §9 ₹200cr verifiable-parental-consent penalty; NCPCR; POCSO §13",
         "_auto_include": ["cyber_liability"],
     },
     "Edtech.Test_Prep_Adult": {
-        "compliance": 9, "liability": 9, "governance_fraud": 9,
+        "regulatory_compliance": 9, "liability": 9, "governance_fraud": 9,
         "_note": "MoE Coaching Guidelines 16-Jan-2024; CCPA refund mandate; Byju's precedent",
     },
 }
@@ -1364,13 +1364,13 @@ def compute_risk_scores(inp: StartupInput) -> dict:
 
     # ── Data sensitivity multipliers ──────────────────────────────────────────
     data_mult = {
-        "Low":    {"cyber_technical": 0.6, "data_privacy_regulatory": 0.5, "compliance": 0.8},
-        "Medium": {"cyber_technical": 1.0, "data_privacy_regulatory": 1.0, "compliance": 1.0},
-        "High":   {"cyber_technical": 1.4, "data_privacy_regulatory": 1.5, "compliance": 1.3},
+        "Low":    {"cyber_technical": 0.6, "data_privacy": 0.5, "regulatory_compliance": 0.8},
+        "Medium": {"cyber_technical": 1.0, "data_privacy": 1.0, "regulatory_compliance": 1.0},
+        "High":   {"cyber_technical": 1.4, "data_privacy": 1.5, "regulatory_compliance": 1.3},
     }[inp.data_sensitivity]
 
     # ── Dynamic adjusters from new inputs ─────────────────────────────────────
-    # SDF probability → elevates data_privacy_regulatory (DPDPA §33 ₹250cr)
+    # SDF probability → elevates data_privacy (DPDPA §33 ₹250cr)
     sdf_adj = 1.0 + (inp.sdf_probability * 0.5)
 
     # PN3 / Chinese investor + supply chain → geopolitical elevation
@@ -1428,9 +1428,9 @@ def compute_risk_scores(inp: StartupInput) -> dict:
             * data_mult["cyber_technical"]
         ),
         "Data Privacy Risk": to_100(
-            base["data_privacy_regulatory"]
+            base["data_privacy"]
             * default_stage_mult
-            * data_mult["data_privacy_regulatory"]
+            * data_mult["data_privacy"]
             * sdf_adj
         ),
         "Liability Risk": to_100(
@@ -1462,9 +1462,9 @@ def compute_risk_scores(inp: StartupInput) -> dict:
             * climate_adj
         ),
         "Regulatory Compliance Risk": to_100(
-            base["compliance"]
+            base["regulatory_compliance"]
             * default_stage_mult
-            * data_mult["compliance"]
+            * data_mult["regulatory_compliance"]
             * ai_adj
         ),
         "ESG & Climate Risk": to_100(
