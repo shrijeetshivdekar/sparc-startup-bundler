@@ -152,6 +152,10 @@ _SECTOR_KEY = {
     "Gaming / Media / Content": "saas_b2b",
     "Insurtech": "fintech",
     "Agritech": "trading",
+    # Sectors present in the intake UI but previously unmapped
+    "Proptech": "saas_b2b",
+    "Spacetech": "deeptech",
+    "Other": "saas_b2b",
 }
 
 _STAGE_KEY = {

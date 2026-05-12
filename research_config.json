@@ -282,7 +282,7 @@
   "regulatory_triggers": [
     {"signal": "drone_ops", "reg": "DGCA Drone Rules 2021 Rule 44", "regulation": "DGCA Drone Rules 2021 Rule 44", "product": "Drone_RPAS", "mandatory": true, "citation_url": "https://www.civilaviation.gov.in/"},
     {"signal": "handles_pii", "reg": "DPDP Act 2023; CERT-In 2022", "regulation": "DPDP Act 2023; CERT-In Directions 2022", "product": "CYBER", "mandatory": false, "citation_url": "https://www.meity.gov.in/"},
-    {"signal": "aggregator_schedule_7", "reg": "Code on Social Security 2020", "regulation": "Code on Social Security 2020", "product": "GROUP_PA", "mandatory": true, "citation_url": "https://labour.gov.in/"},
+    {"signal": "aggregator_schedule_7", "reg": "Code on Social Security 2020", "regulation": "Code on Social Security 2020", "product": "GROUP_PA", "mandatory": false, "citation_url": "https://labour.gov.in/"},
     {"signal": "top_1000_listed", "reg": "SEBI LODR 25(10)", "regulation": "SEBI LODR 25(10)", "product": "D_AND_O", "mandatory": true, "citation_url": "https://www.sebi.gov.in/"},
     {"signal": "rbi_licensed", "reg": "RBI Digital Lending Directions 2025", "regulation": "RBI Digital Lending Directions 2025", "product": "CYBER", "mandatory": false, "citation_url": "https://www.rbi.org.in/"},
     {"signal": "d2c_ecommerce", "reg": "Consumer Protection Act 2019", "regulation": "Consumer Protection Act 2019", "product": "PRODUCT_LIABILITY", "mandatory": false, "citation_url": "https://consumeraffairs.nic.in/"}

@@ -13,6 +13,18 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 PROJECT_ROOT = ROOT.parent
+
+# Load .env from project root if present (no dependency needed)
+_dotenv = PROJECT_ROOT / ".env"
+if _dotenv.exists():
+    for _line in _dotenv.read_text(encoding="utf-8").splitlines():
+        _line = _line.strip()
+        if _line and not _line.startswith("#") and "=" in _line:
+            _k, _, _v = _line.partition("=")
+            os.environ.setdefault(_k.strip(), _v.strip())
+    print(f"[startup] .env loaded — GEMINI_API_KEY {'SET' if os.environ.get('GEMINI_API_KEY') else 'MISSING'}", flush=True)
+else:
+    print(f"[startup] No .env found at {_dotenv}", flush=True)
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from risk_engine import (  # noqa: E402
@@ -775,6 +787,117 @@ def call_gemini_json(prompt):
     return parsed, None
 
 
+def generate_why_it_matters(profile, bundle_match, recommendations):
+    """Return {bundle: "...", PRODUCT_KEY: "..."} personalised to sector/stage/team/ops.
+
+    Falls back to static nudge strings when Gemini is unavailable.
+    """
+    sector = profile.get("sector", "startup")
+    stage  = profile.get("funding_stage", "early stage")
+    team   = profile.get("team_size", "")
+    ops    = profile.get("business_model", "")
+    revenue = profile.get("revenue_cr", "")
+
+    team_str    = f"{team}-person team" if team else "team"
+    revenue_str = f", ₹{revenue}Cr revenue" if revenue else ""
+    ops_str     = f", {ops} ops" if ops else ""
+
+    bundle_name = (bundle_match or {}).get("name", "")
+    products = [{"key": r.get("key",""), "name": r.get("name", r.get("key",""))} for r in (recommendations or [])[:8]]
+
+    if not gemini_enabled():
+        result = {"bundle": None}
+        for r in (recommendations or []):
+            result[r.get("key", "")] = r.get("nudge") or None
+        return result
+
+    # Build the exact JSON template Gemini must fill — keys are pre-set so it cannot invent names
+    template = {"bundle": f"<why {bundle_name} matters for this {sector} {stage}>"}
+    for p in products:
+        template[p["key"]] = f"<why {p['name']} matters for this {sector} {stage}>"
+    template_str = json.dumps(template, indent=2, ensure_ascii=False)
+
+    prompt = (
+        f"You are a concise insurance risk analyst. Fill in the JSON template below with a "
+        f"1-2 sentence 'Why it matters' explanation for each key, personalised to this startup:\n"
+        f"- Sector: {sector}\n"
+        f"- Stage: {stage}\n"
+        f"- Team: {team_str}{revenue_str}{ops_str}\n\n"
+        f"Rules:\n"
+        f"- Keep ALL key names EXACTLY as shown — do not rename, lowercase, or add keys.\n"
+        f"- Each value: 1-2 sentences, mentions sector/stage/team context, no bullet points.\n\n"
+        f"Template to fill:\n{template_str}"
+    )
+
+    data, err = call_gemini_json(prompt)
+    if err or not isinstance(data, dict):
+        print(f"[why_it_matters] Gemini fallback: {err}", flush=True)
+        result = {"bundle": None}
+        for r in (recommendations or []):
+            result[r.get("key", "")] = r.get("nudge") or None
+        return result
+
+    print(f"[why_it_matters] Gemini keys returned: {list(data.keys())}", flush=True)
+    # normalise: build a lowercase lookup so key casing differences don't break matches
+    data_lower = {k.lower(): v for k, v in data.items()}
+    result = {"bundle": data.get("bundle")}
+    for r in (recommendations or []):
+        key = r.get("key", "")
+        result[key] = data.get(key) or data_lower.get(key.lower()) or r.get("nudge") or None
+    return result
+
+
+def generate_bundle_insights(profile, bundle_match, revenue_breakdown, triggers, graduation_path):
+    """Return a plain-English, neuromarketing-style explanation of why this bundle was chosen."""
+    sector  = profile.get("sector", "startup")
+    stage   = profile.get("funding_stage", "early stage")
+    team    = profile.get("team_size", "")
+    bundle_name = (bundle_match or {}).get("name", "this bundle")
+    team_str = f"{team}-person team" if team else "team"
+
+    # Summarise triggers in plain English
+    trigger_lines = []
+    for t in (triggers or [])[:4]:
+        sig   = t.get("signal", "")
+        prod  = t.get("product", "")
+        reg   = t.get("regulation") or t.get("reg", "")
+        trigger_lines.append(f"signal={sig}, product={prod}, regulation={reg}")
+
+    # Summarise graduation path
+    grad_lines = [f"{g.get('stage')} → {g.get('bundle')}" for g in (graduation_path or [])[:4]]
+
+    if not gemini_enabled():
+        return None
+
+    prompt = f"""You are a startup insurance advisor writing for a first-time founder who has never bought insurance.
+Write a "Why this bundle was chosen" section for their dashboard in plain, friendly English using neuromarketing principles (loss aversion, social proof, urgency, simplicity). No jargon, no formulas, no percentages.
+
+Startup context:
+- Sector: {sector}
+- Stage: {stage}
+- Team: {team_str}
+- Recommended bundle: {bundle_name}
+- Regulatory signals detected: {"; ".join(trigger_lines) if trigger_lines else "none"}
+- Coverage growth path: {" / ".join(grad_lines) if grad_lines else "not available"}
+
+Return a JSON object with exactly these keys:
+{{
+  "headline": "one punchy sentence (max 12 words) explaining why this bundle fits right now",
+  "why_now": "2-3 sentences using loss aversion — what specific bad thing could happen without this cover at this exact stage/size",
+  "social_proof": "1 sentence: what similar startups at this stage typically do (use social proof, not numbers)",
+  "compliance_plain": ["plain-English sentence per regulatory trigger, max 3 items, e.g. 'You handle customer data — a breach without cyber cover means you pay DPDP fines out of pocket'"],
+  "roadmap_narrative": "2 sentences describing the coverage journey as the startup grows, written like a story not a list"
+}}
+
+Rules: no bullet points inside string values, no markdown, no technical terms like TAM/margin/multiplier, write as if explaining to a smart non-finance person."""
+
+    data, err = call_gemini_json(prompt)
+    if err or not isinstance(data, dict):
+        print(f"[bundle_insights] Gemini fallback: {err}", flush=True)
+        return None
+    return data
+
+
 def fallback_outreach_prompts(profile, scores, recommendations, bundle):
     contacts = load_contacts()
     top_scores = sorted(scores.items(), key=lambda item: item[1], reverse=True)[:3]
@@ -1078,6 +1201,25 @@ def _v2_score(raw):
         for flag in rec.compliance_flags
     ])
     payload["config_version"] = cfg.config_version
+
+    payload["why_it_matters"] = json_safe(generate_why_it_matters(
+        payload["profile"],
+        payload.get("bundle_match"),
+        payload.get("recommendations", []),
+    ))
+
+    stageKey = (payload["profile"].get("funding_stage") or "seed") \
+        .lower().replace("+", "").replace(" ", "_").replace("pre-seed", "seed")
+    grad_map = cfg.graduation_map
+    grad_path = grad_map if isinstance(grad_map, list) else (grad_map.get(stageKey) or grad_map.get("seed") or [])
+    payload["bundle_insights"] = json_safe(generate_bundle_insights(
+        payload["profile"],
+        payload.get("bundle_match"),
+        payload.get("revenue_breakdown", []),
+        payload.get("regulatory_triggers_fired", []),
+        grad_path,
+    ))
+
     return payload
 
 
